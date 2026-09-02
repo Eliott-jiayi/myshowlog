@@ -175,6 +175,10 @@
     [data-card-id].card-drag-mode{ outline:1px dashed var(--accent); outline-offset:2px; cursor:grab; }
     [data-card-id].card-drag-mode:active{ cursor:grabbing; }
     [data-card-id].drag-over{ outline:2px solid var(--accent); outline-offset:2px; transform:scale(.97); }
+    /* 应用管理行拖拽 */
+    [data-app-row-id]{ transition: outline .15s, transform .1s, opacity .15s; cursor:grab; }
+    [data-app-row-id]:active{ cursor:grabbing; }
+    [data-app-row-id].drag-over{ outline:2px solid var(--accent); outline-offset:2px; transform:translateX(4px); }
   </style>
 </head>
 <body class="min-h-screen">
@@ -291,7 +295,7 @@
       </div>
       <div>
         <label class="text-sm block mb-1">标签（回车添加，或点选下方常用标签）</label>
-        <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 神作"/></div>
+        <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 神作"/><button type="button" onclick="addTagFromInput()" class="btn-soft px-4 py-2.5 text-sm shrink-0 flex items-center gap-1"><i class="fa fa-plus"></i>标签</button></div>
         <div id="tagPresetList" class="flex flex-wrap gap-1.5 mt-2"></div>
         <div id="tagList" class="flex flex-wrap gap-2 mt-2"></div>
       </div>
@@ -757,7 +761,7 @@
             <button onclick="resetAppOrder()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-list mr-1"></i>恢复默认顺序</button>
             <button onclick="restorePresetApps()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-undo mr-1"></i>恢复已删预置应用</button>
           </div>
-          <p class="text-xs text-muted-c">应用图标自动从网络获取（站点 favicon 优先）；侧边栏快捷可拖拽排序（桌面）或长按删除；此处可用 ↑↓ 调整顺序、铅笔改名、垃圾桶删除。预置应用删除后可恢复。</p>
+          <p class="text-xs text-muted-c">应用图标自动从网络获取（站点 favicon 优先）；侧边栏快捷可拖拽排序（桌面）或长按删除；此处可<b>拖拽整行</b>排序，或用 ↑↓ 调整、铅笔改名、垃圾桶删除。预置应用删除后可恢复。</p>
         </div>
 
         <!-- AI 智能识别配置 -->
@@ -1604,6 +1608,21 @@
     if(i>=0) editingTags.splice(i,1); else editingTags.push(t);
     renderTagList();
   }
+  // 「+标签」按钮：取输入框内容，为空则弹窗输入，添加后清空输入框
+  function addTagFromInput(){
+    const inp=$('fldTagInput');
+    let v=(inp && inp.value||'').trim();
+    if(!v){
+      const p=prompt('输入标签名（如：治愈 / 神作）');
+      if(p===null) return;
+      v=p.trim();
+      if(!v){ alert('标签不能为空'); return; }
+    }
+    if(!editingTags.includes(v)){ editingTags.push(v); renderTagList(); }
+    else { alert('该标签已添加'); }
+    if(inp) inp.value='';
+    if(inp) inp.focus();
+  }
   function removeTag(i){ editingTags.splice(i,1); renderTagList(); }
   function switchImgSrc(mode){
     const localActive=mode==='local', libActive=mode==='lib';
@@ -1919,7 +1938,8 @@
     const apps=orderedApps();
     if(!apps.length){ wrap.innerHTML='<p class="text-xs text-muted-c">暂无应用，点击下方添加</p>'; return; }
     wrap.innerHTML=apps.map((a,idx)=>`
-      <div class="flex items-center gap-3 p-2 rounded-xl soft-bg-50">
+      <div class="flex items-center gap-3 p-2 rounded-xl soft-bg-50" data-app-row-id="${a.id}" draggable="true" ondragstart="onAppRowDragStart(event,'${a.id}')" ondragend="onAppRowDragEnd(event)" ondragover="onAppRowDragOver(event)" ondrop="onAppRowDrop(event,'${a.id}')" ondragenter="onAppRowDragEnter(event)" ondragleave="onAppRowDragLeave(event)" title="拖拽整行调整顺序">
+        <i class="fa fa-bars text-muted-c shrink-0" title="拖拽手柄"></i>
         <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 relative overflow-hidden" style="background:var(--accent);color:#fff">${appIconHTML(a.url,a.name)}</div>
         <div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${escapeHtml(a.name)} ${a.preset?'<span class="text-xs text-muted-c">(预置)</span>':'<span class="text-xs text-muted-c">(自定义)</span>'}</div><div class="text-xs text-muted-c truncate">${escapeHtml(a.url)}${a.scheme?' · '+escapeHtml(a.scheme):''}</div></div>
         <div class="flex flex-col gap-0.5 shrink-0">
@@ -1930,6 +1950,36 @@
         <button onclick="renameApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1 shrink-0" title="改名"><i class="fa fa-pencil"></i></button>
         <button onclick="deleteApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1 shrink-0" title="删除"><i class="fa fa-trash"></i></button>
       </div>`).join('');
+  }
+  // 应用管理列表行拖拽排序（桌面 HTML5 drag-and-drop）
+  let dragAppRowId=null, dragAppRowEl=null;
+  function onAppRowDragStart(e, id){
+    dragAppRowId=id; dragAppRowEl=e.currentTarget;
+    try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', id); }catch(_){}
+    e.currentTarget.style.opacity='0.4';
+  }
+  function onAppRowDragEnd(e){
+    dragAppRowId=null; dragAppRowEl=null;
+    e.currentTarget.style.opacity='';
+    document.querySelectorAll('[data-app-row-id].drag-over').forEach(el=>el.classList.remove('drag-over'));
+  }
+  function onAppRowDragOver(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} }
+  function onAppRowDragEnter(e){ if(dragAppRowEl && e.currentTarget!==dragAppRowEl) e.currentTarget.classList.add('drag-over'); }
+  function onAppRowDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+  function onAppRowDrop(e, overId){
+    e.preventDefault(); e.stopPropagation();
+    const fromId=dragAppRowId; dragAppRowId=null; dragAppRowEl=null;
+    if(!fromId || fromId===overId) return;
+    const apps=orderedApps();
+    const fromIdx=apps.findIndex(a=>a.id===fromId);
+    const overIdx=apps.findIndex(a=>a.id===overId);
+    if(fromIdx<0||overIdx<0) return;
+    const moved=apps[fromIdx];
+    apps.splice(fromIdx,1);
+    apps.splice(overIdx,0,moved);
+    appOrder=apps.map(a=>a.id);
+    saveAppOrder();
+    renderAppManage(); renderAppShortcuts();
   }
   // 上移/下移应用（移动端友好）
   function moveApp(id, delta){
