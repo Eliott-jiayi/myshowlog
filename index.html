@@ -60,6 +60,8 @@
     .badge-want { background:var(--state-want); color:#3a3a3a; }
     .badge-watching { background:var(--state-watching); color:#3a3a3a; }
     .badge-done { background:var(--state-done); color:#3a3a3a; }
+    .badge-replay { background:linear-gradient(135deg,#f4a6a4 0%,#c79fe8 100%); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.15); font-weight:600; letter-spacing:.2px; }
+    .badge-replay::before{ content:'↻ '; display:inline; }
     .stat-want { background:color-mix(in srgb,var(--state-want) 45%,transparent); }
     .stat-watching { background:color-mix(in srgb,var(--state-watching) 55%,transparent); }
     .stat-done { background:color-mix(in srgb,var(--state-done) 55%,transparent); }
@@ -978,6 +980,25 @@
   const userRecordsKey = () => 'msl_records_'+currentUser;
   const userProfileKey = () => STORAGE_PROFILE+currentUser;
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  // 轻量 Toast：pos = top|center; style = default|accent|replay|warn
+  let _toastTimer=null;
+  function showToast(msg, {pos='center', style='default', duration=1500}={}){
+    try{
+      document.querySelectorAll('.msl-toast').forEach(n=>n.remove());
+      const t=document.createElement('div');
+      t.className='msl-toast';
+      const bg = style==='accent' ? 'var(--accent)'
+              : style==='replay' ? 'linear-gradient(135deg,#f4a6a4 0%,#c79fe8 100%)'
+              : style==='warn'   ? '#e57373'
+              :                     'rgba(80,80,80,.92)';
+      const topPos = pos==='top' ? '18%' : pos==='upper' ? '24%' : '38%';
+      t.style.cssText=`position:fixed;left:50%;top:${topPos};transform:translateX(-50%);background:${bg};color:#fff;padding:8px 16px;border-radius:999px;z-index:99999;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.18);pointer-events:none;animation:msl-toast-in .2s ease;`;
+      t.textContent=msg;
+      document.body.appendChild(t);
+      clearTimeout(_toastTimer);
+      _toastTimer=setTimeout(()=>{ try{ t.remove(); }catch(_){} }, duration);
+    }catch(_){}
+  }
   const itemsOf = m => data[m.stateKey];
 
   // ============ 本地图库（IndexedDB） ============
@@ -1498,6 +1519,55 @@
   function statusBadge(m,s){ const [lbl,cls]=statusInfo(m,s); return `<span class="text-xs px-2 py-0.5 rounded-full ${cls}">${lbl}</span>`; }
   function progressStr(m,it){ const p=it[m.pField]||0, t=it[m.tField]||0; return t? p+' / '+t+' '+m.unit : p+' '+m.unit; }
   function starStr(n){ let s=''; for(let i=1;i<=5;i++) s+=`<i class="fa fa-star" style="color:${i<=n?'var(--accent)':'var(--star-empty)'}"></i>`; return s; }
+  // ============ 重刷/多刷记录辅助 ============
+  // 语义：replayCount = 额外重刷次数；0 / undefined 表示未重刷（仅首次完整看过）。
+  // 总阅次数 = 首次 + replayCount = replayCount + 1（当已有状态=看过/读过时）。
+  function getReplayCount(it){ return Math.max(0, parseInt(it?.replayCount)||0); }
+  // 总次数文案：1=初看/初读，2+=二刷/二读、三刷/三读、N刷/N读
+  function replayText(m, it){
+    const n=getReplayCount(it);
+    if(n<=0) return '';
+    const unit = m.key==='book' ? '读' : '刷';
+    const total = n+1;
+    if(total<=10){
+      const cn=['','一','二','三','四','五','六','七','八','九','十'];
+      return cn[total]+unit;
+    }
+    return total+unit;
+  }
+  function replayBadge(m, it){
+    const t=replayText(m,it); if(!t) return '';
+    const n=getReplayCount(it);
+    return `<span class="text-[11px] px-2 py-0.5 rounded-full badge-replay" title="累计：${n+1} 次 · ${t}">${t}</span>`;
+  }
+  function replayHistoryPreview(it, limit=3){
+    if(!it || !Array.isArray(it.replays) || !it.replays.length) return '';
+    const slice=it.replays.slice(-limit).reverse(); // 最新在前
+    return slice.map(r=>{
+      const d=new Date(r.at||0);
+      const timeStr = isNaN(d)? '-' : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return `<span class="text-xs text-muted-c">↻ ${timeStr}${r.note?` · ${escapeHtml(r.note)}`:''}</span>`;
+    }).join(' &nbsp; ');
+  }
+  function addReplay(mKey, id, note){
+    const m=MODULES[mKey]; const it=itemsOf(m).find(x=>x.id===id); if(!it) return false;
+    it.replayCount = getReplayCount(it)+1;
+    it.replays = Array.isArray(it.replays) ? it.replays : [];
+    it.replays.push({ at:Date.now(), note:(note||'').toString().trim() });
+    // 保留最近 50 条防膨胀
+    if(it.replays.length>50) it.replays.splice(0, it.replays.length-50);
+    saveItems(m);
+    return true;
+  }
+  function undoReplay(mKey, id){
+    const m=MODULES[mKey]; const it=itemsOf(m).find(x=>x.id===id); if(!it) return false;
+    const n=getReplayCount(it); if(n<=0) return false;
+    it.replayCount = n-1;
+    if(it.replayCount<=0) delete it.replayCount;
+    if(Array.isArray(it.replays)){ it.replays.pop(); if(!it.replays.length) delete it.replays; }
+    saveItems(m);
+    return true;
+  }
   function cardHTML(m,it){
     const fallback=`<div class="w-full aspect-[2/3] rounded-xl soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-3xl"></i></div>`;
     const fbEsc=fallback.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;');
@@ -1510,8 +1580,10 @@
       ? ` draggable="true" ondragstart="onCardDragStart(event,'${it.id}')" ondragend="onCardDragEnd(event)" ondragover="onCardDragOver(event)" ondrop="onCardDrop(event,'${m.key}','${it.id}')" ondragenter="onCardDragEnter(event)" ondragleave="onCardDragLeave(event)"`
       : '';
     const dragHint = isManual ? ' title="拖拽以调整顺序"' : '';
+    const rBadge=replayBadge(m,it);
+    const cornerBadges=`<div class="absolute top-2 right-2 flex flex-col gap-1 items-end">${statusBadge(m,it.status)}${rBadge}</div>`;
     return `<div class="card-ins card-hover overflow-hidden cursor-pointer${isManual?' card-drag-mode':''}"${dragAttrs}${dragHint} data-card-id="${it.id}" onclick="openDetail('${m.key}','${it.id}')">
-      <div class="p-2.5 sm:p-3"><div class="relative">${img}<div class="absolute top-2 right-2">${statusBadge(m,it.status)}</div>${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
+      <div class="p-2.5 sm:p-3"><div class="relative">${img}${cornerBadges}${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
       <div class="mt-3"><h3 class="font-medium text-[14px] sm:text-sm leading-snug text-balance" style="word-break:break-word">${escapeHtml(it.title)}</h3>
       <div class="text-[11px] sm:text-xs text-muted-c mt-1">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+extra:''}</div>
       <div class="text-[11px] sm:text-xs mt-1">${starStr(it.rating||0)}</div>
@@ -2089,14 +2161,35 @@
     const tagsHtml=(it.tags||[]).length?`<div class="flex flex-wrap gap-2 mt-3">${it.tags.map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
     const noteHtml=it.note?`<div class="mt-4 p-3 rounded-xl text-sm leading-relaxed soft-bg-50">${escapeHtml(it.note)}</div>`:'';
     const extraHtml=m.extraFields.map(f=>it[f.key]?`<div class="text-sm text-muted-c mt-2">${f.label}：${escapeHtml(it[f.key])}</div>`:'').join('');
+    // 重刷/重读区块
+    const rBadge=replayBadge(m,it);
+    const totalReplay=getReplayCount(it);
+    const totalCount=totalReplay+1;
+    const countLbl = m.key==='book' ? '本' : '次';
+    const histPrev = replayHistoryPreview(it, 3);
+    const canUndo = totalReplay>0;
+    const replayBlock = `
+      <div class="mt-4 p-3 rounded-xl soft-bg-50">
+        <div class="flex items-center gap-2 flex-wrap mb-2">
+          <span class="font-medium text-sm"><i class="fa fa-refresh mr-1" style="color:var(--accent)"></i>累计：${totalCount} ${countLbl}${rBadge?`&nbsp;${rBadge}`:''}</span>
+        </div>
+        ${histPrev ? `<div class="flex flex-wrap gap-2 mb-3">${histPrev}</div>` : '<p class="text-xs text-muted-c mb-3">记录一次重新'+(m.key==='book'?'阅读':'观看')+'的时间，方便回顾刷过多少次。</p>'}
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="text" id="replayNoteInput_${it.id}" class="input-ins px-3 py-1.5 text-sm flex-1 min-w-[160px]" placeholder="可选：此刻感想 / 时间点备注（回车即提交）"
+             onkeydown="if(event.key==='Enter'){ event.preventDefault(); submitReplayNote('${key}','${it.id}'); }">
+          <button onclick="submitReplayNote('${key}','${it.id}')" class="btn-soft px-3 py-1.5 text-sm"><i class="fa fa-plus mr-1"></i>${m.key==='book'?'+1 重读':'+1 重刷'}</button>
+          <button onclick="undoLastReplay('${key}','${it.id}')" class="btn-outline px-3 py-1.5 text-sm ${canUndo?'':'opacity-50 cursor-not-allowed'}" ${canUndo?'':'disabled'}><i class="fa fa-undo mr-1"></i>撤销上次</button>
+        </div>
+      </div>`;
     $('detailContent').innerHTML=`
       <div class="grid md:grid-cols-3 gap-5">
         <div class="md:col-span-1">${img}</div>
         <div class="md:col-span-2">
-          <div class="flex items-center gap-2 flex-wrap mb-2"><h2 class="text-xl font-medium">${escapeHtml(it.title)}</h2>${statusBadge(m,it.status)}</div>
+          <div class="flex items-center gap-2 flex-wrap mb-2"><h2 class="text-xl font-medium">${escapeHtml(it.title)}</h2>${statusBadge(m,it.status)}${rBadge?`&nbsp;${rBadge}`:''}</div>
           <div class="text-sm text-muted-c mb-3">${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
           <div class="text-sm mb-3">${starStr(it.rating||0)}</div>
           ${extraHtml}${tagsHtml}${noteHtml}
+          ${replayBlock}
           <div class="flex gap-2 mt-6 flex-wrap">
             <button onclick="openItemModal('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-pencil mr-1"></i>编辑</button>
             <button onclick="openPoster('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-image mr-1"></i>生成海报</button>
@@ -2105,6 +2198,27 @@
         </div>
       </div>`;
     $('detailModal').classList.remove('hidden');
+  }
+  function submitReplayNote(mKey, id){
+    const input=$(`replayNoteInput_${id}`); const note = input ? input.value.trim() : '';
+    if(!addReplay(mKey, id, note)) return;
+    // 轻量提示 + 刷新详情 + 刷新网格（同步角标）
+    const m=MODULES[mKey]; const it=itemsOf(m).find(x=>x.id===id);
+    if(it){
+      const t=replayText(m,it);
+      showToast('已记录 · '+(t||(m.key==='book'?'1读':'1刷')), {pos:'upper', style:'accent', duration:1400});
+    }
+    // 重新渲染详情 & 当前模块
+    try{ renderAll(m); }catch(_){}
+    openDetail(mKey, id); // 重新打开以刷新历史展示
+  }
+  function undoLastReplay(mKey, id){
+    const m=MODULES[mKey]; const before=getReplayCount(itemsOf(m).find(x=>x.id===id));
+    if(before<=0) return;
+    if(!undoReplay(mKey, id)) return;
+    showToast('已撤销上一次 '+(m.key==='book'?'重读':'重刷'), {pos:'upper', duration:1200});
+    try{ renderAll(m); }catch(_){}
+    openDetail(mKey, id);
   }
   function closeDetail(){ $('detailModal').classList.add('hidden'); }
   function deleteItem(key, id){
@@ -2575,9 +2689,35 @@
   function addRecord(){
     const title=$('recTitle').value.trim();
     if(!title){ alert('请填写标题'); return; }
-    records.unshift({ id:uid(), title, software:$('recSoftware').value.trim(), kind:$('recKind').value,
-      episode:$('recEpisode').value.trim(), date:$('recDate').value, note:$('recNote').value.trim(), createdAt:Date.now() });
+    const kind=$('recKind').value;
+    const software=$('recSoftware').value.trim();
+    const episode=$('recEpisode').value.trim();
+    const date=$('recDate').value;
+    const note=$('recNote').value.trim();
+    records.unshift({ id:uid(), title, software, kind, episode, date, note, createdAt:Date.now() });
     saveRecords();
+    // 记录本+1 条：若标题匹配到已有的「看过/读过」条目，则自动累加一次重刷
+    const mKey = kind==='book'?'book':'show';
+    const m=MODULES[mKey];
+    const normTitle=normalizeTitle(title);
+    const doneStatus = kind==='book'?'done':'done';
+    const matched = itemsOf(m).find(x=> normalizeTitle(x.title||'')===normTitle && x.status===doneStatus)
+               || itemsOf(m).find(x=> normalizeTitle(x.title||'')===normTitle); // 退而求其次，匹配状态任意的同标题
+    if(matched){
+      const replayNote = [software, episode, note].filter(Boolean).join(' · ');
+      const before=getReplayCount(matched);
+      addReplay(mKey, matched.id, replayNote);
+      const after=getReplayCount(matched);
+      if(after>before){
+        const total = after+1;
+        const totalTxt = total<=10 ? ['','一','二','三','四','五','六','七','八','九','十'][total] : String(total);
+        showToast('↻ 匹配到《'+matched.title+'》· 已记录 '+totalTxt+(kind==='book'?'读':'刷'), {pos:'top', style:'replay', duration:1800});
+        // 刷新当前视图（若在对应模块）
+        try{
+          if((mKey==='show' && activeView==='home') || (mKey==='book' && activeView==='books')) renderAll(m);
+        }catch(_){}
+      }
+    }
     ['recTitle','recSoftware','recEpisode','recDate','recNote'].forEach(id=>$(id).value='');
     renderRecords();
   }
@@ -2680,10 +2820,11 @@
       wrap.className='flex flex-col gap-2';
       wrap.innerHTML=recent.map(it=>{
         const m=MODULES[it._k];
+        const rb=replayBadge(m,it);
         return `<div class="card-ins card-hover cursor-pointer p-3 flex items-center gap-3" onclick="openDetail('${m.key}','${it.id}')">
           <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:var(--soft);color:var(--accent)"><i class="fa ${m.key==='book'?'fa-book':'fa-film'}"></i></div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate">${escapeHtml(it.title)}</div>
+            <div class="text-sm font-medium truncate">${escapeHtml(it.title)}${rb?' <span class="ml-1 align-middle">'+rb+'</span>':''}</div>
             <div class="text-xs text-muted-c truncate">${m.label}${it.rating?' · '+starStr(it.rating):''}</div>
           </div>
           <span class="text-xs text-muted-c">${progressStr(m,it)}</span>
@@ -2695,12 +2836,14 @@
         const m=MODULES[it._k];
         const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
-        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}</div>`;
+        const rb=replayBadge(m,it);
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden relative" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}${rb?`<div class="absolute top-1 right-1">${rb}</div>`:''}</div>`;
       }).join('');
     } else if(style==='magazine'){
       wrap.className='grid grid-cols-1 sm:grid-cols-2 gap-3';
       wrap.innerHTML=recent.map((it,idx)=>{
         const m=MODULES[it._k];
+        const rb=replayBadge(m,it);
         const fb=`<div class="w-24 h-32 rounded-lg soft-bg flex items-center justify-center text-muted-c shrink-0"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-24 h-32 object-cover rounded-lg shrink-0" onerror="this.outerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
         const lead = idx===0 ? 'sm:col-span-2' : '';
@@ -2710,7 +2853,7 @@
           <div class="flex gap-3">
             ${idx===0?'':img}
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate">${escapeHtml(it.title)}</div>
+              <div class="text-sm font-medium truncate">${escapeHtml(it.title)}${rb?' <span class="ml-1 align-middle">'+rb+'</span>':''}</div>
               <div class="text-xs text-muted-c">${m.label} · ${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
               ${it.rating?'<div class="text-xs mt-1">'+starStr(it.rating)+'</div>':''}
               ${it.note?'<div class="text-xs text-muted-c mt-1 line-clamp-2">'+escapeHtml(it.note)+'</div>':''}
@@ -2718,23 +2861,15 @@
           </div>
         </div>`;
       }).join('');
-    } else if(style==='grid'){
-      // 宫格墙：纯海报密集网格，无文字标签，悬停显示标题
-      wrap.className='grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2';
-      wrap.innerHTML=recent.map(it=>{
-        const m=MODULES[it._k];
-        const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-xl"></i></div>`;
-        const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
-        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}</div>`;
-      }).join('');
     } else {
       // card 默认
       wrap.className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3';
       wrap.innerHTML=recent.map(it=>{
         const m=MODULES[it._k];
+        const rb=replayBadge(m,it);
         const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
-        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2">${img}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2 relative">${img}${rb?`<div class="absolute top-3 right-3">${rb}</div>`:''}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
       }).join('');
     }
   }
