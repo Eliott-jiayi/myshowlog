@@ -160,6 +160,16 @@
     .slider::before{ content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
     .switch input:checked + .slider{ background:var(--accent,#6366f1); }
     .switch input:checked + .slider::before{ transform:translateX(18px); }
+
+    /* 下拉刷新指示 */
+    #pullToRefresh{ position:absolute; top:0; left:0; right:0; height:0; overflow:hidden;
+      display:flex; align-items:center; justify-content:center; transition:height .15s ease; z-index:20;
+      color:var(--muted); font-size:13px; pointer-events:none; }
+    #pullToRefresh .ptr-inner{ display:flex; align-items:center; gap:6px; }
+    #pullToRefresh.active .ptr-icon{ animation: ptr-spin 1s linear infinite; }
+    @keyframes ptr-spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+    /* line-clamp 兼容 */
+    .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -180,7 +190,7 @@
     </div>
     <!-- 登录 -->
     <div id="panelLogin">
-      <div class="mb-3"><label class="text-sm block mb-1">邮箱或用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="邮箱或用户名" oninput="onLoginIdInput()"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">邮箱/手机号/用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="邮箱/手机号/用户名" oninput="onLoginIdInput()"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">密码</label><input id="loginPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="输入密码"/></div>
       <div id="loginCodeWrap" class="mb-3 hidden">
         <label class="text-sm block mb-1">账号编码</label>
@@ -197,6 +207,7 @@
     <div id="panelReg" class="hidden">
       <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5" placeholder="可同名，系统生成唯一账号编码"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">邮箱</label><input id="regEmail" type="email" class="input-ins w-full px-4 py-2.5" placeholder="用于验证与找回密码"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">手机号（选填）</label><input id="regPhone" class="input-ins w-full px-4 py-2.5" placeholder="可用于登录，后续可在「我的」绑定"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">设置密码</label><input id="regPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="设置密码"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">确认密码</label><input id="regPwd2" type="password" class="input-ins w-full px-4 py-2.5" placeholder="再次输入密码"/></div>
       <button onclick="sendRegCode()" class="btn-soft w-full py-2.5">发送验证码</button>
@@ -315,6 +326,19 @@
   </div>
 </div>
 
+<!-- ============ AI 助手面板 ============ -->
+<div id="aiPanelModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-lg mx-auto my-8 relative">
+    <button onclick="closeAIAssistantPanel()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <h3 class="text-lg font-medium mb-1">AI 助手</h3>
+    <p class="text-xs text-muted-c mb-4">点击任意 AI 平台跳转到对应 App 或网页版，可识图找剧找书、生成笔记。也可在「添加剧集/书籍」时点「AI 智能识别」直接上传图片识别。</p>
+    <div id="aiPanelList" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4"></div>
+    <div class="card-ins p-4" style="background:var(--soft)">
+      <p class="text-xs text-muted-c">提示：原生 App 通过 scheme 唤起（仅手机端有效），未安装则回退到网页版。如需上传图片识别封面，请到「设置 → AI 智能识别」配置 Gemini/OpenAI API Key 后使用条目弹窗内的「AI 智能识别」按钮。</p>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 记录本弹窗（外部观看/阅读记录） ============ -->
 <div id="recordsModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
   <div class="card-ins p-6 w-full max-w-2xl mx-auto my-8 relative">
@@ -399,9 +423,22 @@
     <nav class="flex flex-col gap-1">
       <button data-view="home" onclick="switchView('home')" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-th w-4 text-center"></i><span class="collapse-hide">剧集</span></button>
       <button data-view="books" onclick="switchView('books')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-book w-4 text-center"></i><span class="collapse-hide">书架</span></button>
+      <button data-view="recommend" onclick="switchView('recommend')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-magic w-4 text-center"></i><span class="collapse-hide">每日推荐</span></button>
       <button data-view="profile" onclick="switchView('profile')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-user w-4 text-center"></i><span class="collapse-hide">我的</span></button>
       <button data-view="settings" onclick="switchView('settings')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-cog w-4 text-center"></i><span class="collapse-hide">设置</span></button>
     </nav>
+
+    <!-- AI 板块 -->
+    <div class="mt-5 collapse-hide">
+      <div class="flex items-center justify-between px-3 mb-2">
+        <p class="text-xs text-muted-c">AI 助手</p>
+        <button onclick="switchView('recommend')" class="text-xs text-muted-c hover:opacity-70" title="跳转每日推荐">→</button>
+      </div>
+      <div id="aiShortcutList" class="grid grid-cols-2 gap-1.5 px-2"></div>
+      <div class="flex gap-2 mt-2 px-2">
+        <button onclick="openAIAssistantPanel()" class="btn-outline flex-1 py-1.5 text-xs"><i class="fa fa-comments mr-1"></i>更多 AI</button>
+      </div>
+    </div>
 
     <div class="mt-5 collapse-hide">
       <p class="text-xs text-muted-c px-3 mb-2">应用快捷</p>
@@ -442,6 +479,7 @@
       <button onclick="toggleSidebarMobile()" class="btn-outline w-9 h-9 flex items-center justify-center"><i class="fa fa-bars"></i></button>
       <span class="font-medium" id="mobileTitle">剧集</span>
       <div class="flex items-center gap-2">
+        <button onclick="refreshPage()" class="btn-outline w-9 h-9 flex items-center justify-center" title="刷新网页"><i class="fa fa-refresh"></i></button>
         <button onclick="openShareModal()" class="btn-outline w-9 h-9 flex items-center justify-center" title="分享"><i class="fa fa-share-alt"></i></button>
         <button onclick="openItemModal('show')" id="mobileAddBtn" class="btn-soft w-9 h-9 flex items-center justify-center"><i class="fa fa-plus"></i></button>
       </div>
@@ -453,10 +491,15 @@
         <span id="orientBadge" class="text-xs px-2 py-0.5 rounded-full hidden items-center gap-1" style="background:var(--soft);color:var(--muted)"><i class="fa fa-mobile"></i><span id="orientText">竖屏</span></span>
         <span id="deviceBadge" title="当前设备类型"><i class="fa fa-desktop"></i><span id="deviceText">电脑</span></span>
       </div>
-      <button onclick="openShareModal()" class="btn-outline px-4 py-2 text-sm flex items-center gap-2"><i class="fa fa-share-alt"></i>分享</button>
+      <div class="flex items-center gap-2">
+        <button onclick="refreshPage()" class="btn-outline w-9 h-9 flex items-center justify-center" title="刷新网页"><i class="fa fa-refresh"></i></button>
+        <button onclick="openShareModal()" class="btn-outline px-4 py-2 text-sm flex items-center gap-2"><i class="fa fa-share-alt"></i>分享</button>
+      </div>
     </div>
 
-    <main class="flex-1 p-4 md:p-6 max-w-6xl w-full mx-auto">
+    <main class="flex-1 p-4 md:p-6 max-w-6xl w-full mx-auto relative">
+      <!-- 下拉刷新指示 -->
+      <div id="pullToRefresh"><div class="ptr-inner"><i class="fa fa-refresh ptr-icon"></i><span class="ptr-text">下拉刷新</span></div></div>
 
       <!-- ===== 剧集视图 ===== -->
       <section data-view-panel="home">
@@ -518,6 +561,21 @@
         </div>
       </section>
 
+      <!-- ===== 每日推荐 ===== -->
+      <section data-view-panel="recommend" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-medium">每日推荐</h2>
+          <button onclick="renderRecommend()" class="btn-outline px-4 py-2 text-sm flex items-center gap-1"><i class="fa fa-refresh"></i><span class="hidden sm:inline">换一批</span></button>
+        </div>
+        <div class="card-ins p-5 mb-6" style="background:var(--soft)">
+          <p class="text-xs text-muted-c" id="recommendIntro">根据你已添加的剧集与书籍，自动推荐你可能喜欢的新内容，并附上常见观看/阅读来源链接。添加的剧集和书越多，推荐越准。</p>
+        </div>
+        <h3 class="font-medium mb-3">推荐剧集</h3>
+        <div id="recommendShowList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6"></div>
+        <h3 class="font-medium mb-3">推荐书籍</h3>
+        <div id="recommendBookList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </section>
+
       <!-- ===== 个人主页 ===== -->
       <section data-view-panel="profile" class="hidden">
         <h2 class="text-xl font-medium mb-4">个人主页</h2>
@@ -537,6 +595,60 @@
             <p class="text-xs text-muted-c">加入时间：<span id="profileSince">-</span></p>
           </div>
         </div>
+
+        <!-- 个性签名 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">个性签名</h3>
+          <div class="flex gap-2">
+            <input id="profileSignature" class="input-ins flex-1 px-4 py-2.5" maxlength="60" placeholder="写一句介绍自己，留空则不展示"/>
+            <button onclick="saveProfileSignature()" class="btn-soft px-4 py-2 text-sm">保存</button>
+          </div>
+          <p class="text-xs text-muted-c mt-2">在主页与分享卡片中展示，最多 60 字。</p>
+        </div>
+
+        <!-- 邮箱 / 手机号 绑定 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-3">账号绑定</h3>
+          <p class="text-xs text-muted-c mb-4">邮箱与手机号均可用于登录、找回密码。注册时未绑定的可在后续随时补绑，也可修改为新的邮箱号。</p>
+          <div class="space-y-3 text-sm">
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background:var(--soft)">
+              <div class="min-w-0 pr-2">
+                <div class="text-xs text-muted-c">邮箱</div>
+                <div class="font-medium truncate" id="profileEmailShow">未绑定</div>
+              </div>
+              <button onclick="bindEmail()" class="btn-outline px-3 py-1.5 text-xs shrink-0" id="profileEmailBtn">绑定邮箱</button>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background:var(--soft)">
+              <div class="min-w-0 pr-2">
+                <div class="text-xs text-muted-c">手机号</div>
+                <div class="font-medium truncate" id="profilePhoneShow">未绑定</div>
+              </div>
+              <button onclick="bindPhone()" class="btn-outline px-3 py-1.5 text-xs shrink-0" id="profilePhoneBtn">绑定手机号</button>
+            </div>
+          </div>
+          <p class="text-xs text-muted-c mt-3">修改邮箱号需通过新邮箱验证码验证；手机号校验为本机模式（接入短信网关后改为短信发送）。</p>
+        </div>
+
+        <!-- 展示页面样式 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">展示页面样式</h3>
+          <p class="text-xs text-muted-c mb-3">选择主页信息卡片的展示样式，预览即生效。</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="displayStyleList">
+            <button data-style="card" onclick="setDisplayStyle('card')" class="display-style-btn p-3 rounded-xl text-sm btn-outline">
+              <i class="fa fa-th-large block mb-1"></i>卡片式
+            </button>
+            <button data-style="minimal" onclick="setDisplayStyle('minimal')" class="display-style-btn p-3 rounded-xl text-sm btn-outline">
+              <i class="fa fa-align-left block mb-1"></i>极简列表
+            </button>
+            <button data-style="grid" onclick="setDisplayStyle('grid')" class="display-style-btn p-3 rounded-xl text-sm btn-outline">
+              <i class="fa fa-th block mb-1"></i>宫格墙
+            </button>
+            <button data-style="magazine" onclick="setDisplayStyle('magazine')" class="display-style-btn p-3 rounded-xl text-sm btn-outline">
+              <i class="fa fa-newspaper-o block mb-1"></i>杂志式
+            </button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatShows">0</div><div class="text-xs text-muted-c">剧集数</div></div>
           <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatBooks">0</div><div class="text-xs text-muted-c">书籍数</div></div>
@@ -546,11 +658,10 @@
         <h3 class="font-medium mb-3">最近添加</h3>
         <div id="recentList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"></div>
 
-        <!-- 危险操作：注销账号 -->
-        <div class="card-ins p-5 mt-6" style="border:1px solid rgba(239,68,68,.4)">
-          <h3 class="font-medium mb-2" style="color:#ef4444">注销账号</h3>
-          <p class="text-xs text-muted-c mb-4">注销将永久删除本机上该账号的全部数据（剧集、书架、记录、头像、应用设置、图库图片），且不可恢复。请谨慎操作。</p>
-          <button onclick="deleteAccount()" class="px-4 py-2 text-sm rounded-lg" style="background:#ef4444;color:#fff"><i class="fa fa-user-times mr-1"></i>永久注销并删除数据</button>
+        <!-- 退出账号 -->
+        <div class="card-ins p-5 mt-6 text-center">
+          <button onclick="logout()" class="btn-outline px-6 py-2.5 text-sm"><i class="fa fa-sign-out mr-1"></i>退出登录</button>
+          <p class="text-xs text-muted-c mt-3">仅退出当前账号，数据仍保留在本机；如需永久删除请到「设置」底部「注销账号」。</p>
         </div>
       </section>
 
@@ -564,8 +675,10 @@
           <div class="text-sm space-y-1 mb-4">
             <div>用户名：<span id="setName" class="font-medium"></span></div>
             <div>邮箱：<span id="setEmail" class="font-medium"></span></div>
+            <div>手机号：<span id="setPhone" class="font-medium"></span></div>
             <div>账号编码：<span id="setCode" class="font-mono" style="color:var(--accent)"></span></div>
           </div>
+          <p class="text-xs text-muted-c mb-3">邮箱/手机号绑定与修改入口位于「我的 → 账号绑定」，三种方式均可登录。</p>
           <div class="flex flex-wrap gap-2">
             <button onclick="changePassword()" class="btn-soft px-4 py-2 text-sm"><i class="fa fa-key mr-1"></i>修改密码</button>
             <button onclick="logout()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-sign-out mr-1"></i>退出登录</button>
@@ -576,19 +689,12 @@
         <!-- 横竖屏设置 -->
         <div class="card-ins p-5 mb-6">
           <h3 class="font-medium mb-2">横竖屏设置</h3>
-          <p class="text-xs text-muted-c mb-3">选择屏幕方向以适应你的设备（手机横屏会启用紧凑侧栏布局）。</p>
+          <p class="text-xs text-muted-c mb-3">选择屏幕方向以适应你的设备（手机横屏会启用紧凑侧栏布局）。主页支持下拉刷新，桌面顶栏另设刷新按钮。</p>
           <div class="flex flex-wrap gap-4 text-sm">
             <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="auto" onchange="setOrientationMode('auto')"/><span>跟随设备</span></label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="portrait" onchange="setOrientationMode('portrait')"/><span>强制竖屏</span></label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="landscape" onchange="setOrientationMode('landscape')"/><span>强制横屏</span></label>
           </div>
-        </div>
-
-        <!-- 网页刷新 -->
-        <div class="card-ins p-5 mb-6">
-          <h3 class="font-medium mb-2">网页刷新</h3>
-          <p class="text-xs text-muted-c mb-3">重新加载当前页面，用于更新到最新版本或修复异常显示。</p>
-          <button onclick="refreshPage()" class="px-4 py-2 text-sm rounded-lg btn-pri"><i class="fa fa-refresh mr-1"></i>刷新网页</button>
         </div>
 
         <div class="card-ins p-5 mb-6">
@@ -680,9 +786,16 @@
           </div>
         </div>
 
-        <div class="card-ins p-5">
+        <div class="card-ins p-5 mb-6">
           <h3 class="font-medium mb-2">关于</h3>
           <p class="text-sm text-muted-c">MyShowLog · 纯前端单页应用，剧集与书架两个独立模块，数据保存在浏览器 localStorage 与 IndexedDB，按账号隔离。</p>
+        </div>
+
+        <!-- 危险操作：注销账号（置于设置最底部） -->
+        <div class="card-ins p-5" style="border:1px solid rgba(239,68,68,.4)">
+          <h3 class="font-medium mb-2" style="color:#ef4444">注销账号</h3>
+          <p class="text-xs text-muted-c mb-4">注销将永久删除本机上该账号的全部数据（剧集、书架、记录、头像、应用设置、图库图片），且不可恢复。请谨慎操作。</p>
+          <button onclick="deleteAccount()" class="px-4 py-2 text-sm rounded-lg" style="background:#ef4444;color:#fff"><i class="fa fa-user-times mr-1"></i>永久注销并删除数据</button>
         </div>
       </section>
 
@@ -727,6 +840,72 @@
     {name:'书旗小说', url:'https://www.shuqi.com', scheme:'sqnovel://'},
     {name:'知乎', url:'https://www.zhihu.com', scheme:'zhihu://'}
   ];
+
+  // 热门 AI 助手平台（侧边栏 AI 板块 + AI 助手面板共用）
+  const AI_ASSISTANTS=[
+    {name:'豆包', url:'https://www.doubao.com', scheme:'doubao://', desc:'抖音豆包，识图找剧、问答助手'},
+    {name:'DeepSeek', url:'https://www.deepseek.com', scheme:'deepseek://', desc:'深度求索，长文分析与推理'},
+    {name:'Kimi', url:'https://kimi.moonshot.cn', scheme:'moonshotdesktopapp://', desc:'月之暗面，长文阅读总结'},
+    {name:'通义千问', url:'https://tongyi.aliyun.com', scheme:'qianwen://', desc:'阿里通义，多模态识图'},
+    {name:'文心一言', url:'https://yiyan.baidu.com', scheme:'yiyan://', desc:'百度文心，搜索增强'},
+    {name:'腾讯元宝', url:'https://yuanbao.tencent.com', scheme:'yuanbao://', desc:'腾讯元宝，搜剧搜书'},
+    {name:'智谱清言', url:'https://chatglm.cn', scheme:'chatglm://', desc:'智谱 GLM-4，多模态'},
+    {name:'海螺AI', url:'https://hailuoai.com', scheme:'hailuo://', desc:'MiniMax 海螺，视频生成'},
+    {name:'ChatGPT', url:'https://chat.openai.com', scheme:'aliya://', desc:'OpenAI ChatGPT 网页版'}
+  ];
+
+  // 每日推荐内容库：基于用户剧集/书籍的类型与标签，从本地预设库推荐，并附常见观看/阅读来源链接
+  // 预设推荐库（精选热门作品 + 常见来源），按 type / tag 匹配
+  const RECOMMEND_LIB = {
+    show:[
+      // 番剧
+      {title:'葬送的芙莉莲', type:'anime', tags:['治愈','奇幻','冒险'], src:'爱奇艺/B站', links:[{name:'B站',url:'https://www.bilibili.com'},{name:'爱奇艺',url:'https://www.iqiyi.com'}]},
+      {title:'咒术回战', type:'anime', tags:['热血','奇幻','战斗'], src:'B站/芒果TV', links:[{name:'B站',url:'https://www.bilibili.com'},{name:'芒果TV',url:'https://www.mgtv.com'}]},
+      {title:'鬼灭之刃', type:'anime', tags:['热血','战斗','奇幻'], src:'B站/爱奇艺', links:[{name:'B站',url:'https://www.bilibili.com'}]},
+      {title:'间谍过家家', type:'anime', tags:['治愈','搞笑','日常'], src:'B站', links:[{name:'B站',url:'https://www.bilibili.com'}]},
+      {title:'进击的巨人', type:'anime', tags:['热血','战斗','黑暗'], src:'B站/爱奇艺', links:[{name:'B站',url:'https://www.bilibili.com'}]},
+      {title:'排球少年', type:'anime', tags:['热血','运动','青春'], src:'B站', links:[{name:'B站',url:'https://www.bilibili.com'}]},
+      // 电影
+      {title:'流浪地球2', type:'movie', tags:['科幻','中国'], src:'爱奇艺/优酷', links:[{name:'爱奇艺',url:'https://www.iqiyi.com'},{name:'优酷',url:'https://www.youku.com'}]},
+      {title:'奥本海默', type:'movie', tags:['传记','历史'], src:'B站/腾讯视频', links:[{name:'B站',url:'https://www.bilibili.com'},{name:'腾讯视频',url:'https://v.qq.com'}]},
+      {title:'沙丘2', type:'movie', tags:['科幻','冒险'], src:'爱奇艺/腾讯视频', links:[{name:'爱奇艺',url:'https://www.iqiyi.com'}]},
+      {title:'蜘蛛侠：纵横宇宙', type:'movie', tags:['动画','科幻','动作'], src:'爱奇艺/优酷', links:[{name:'爱奇艺',url:'https://www.iqiyi.com'}]},
+      // 剧集
+      {title:'繁花', type:'drama', tags:['年代','商战','上海'], src:'爱奇艺/腾讯视频', links:[{name:'爱奇艺',url:'https://www.iqiyi.com'},{name:'腾讯视频',url:'https://v.qq.com'}]},
+      {title:'我的阿勒泰', type:'drama', tags:['治愈','风景','年代'], src:'爱奇艺', links:[{name:'爱奇艺',url:'https://www.iqiyi.com'}]},
+      {title:'庆余年2', type:'drama', tags:['古装','权谋','爽文'], src:'腾讯视频/爱奇艺', links:[{name:'腾讯视频',url:'https://v.qq.com'}]},
+      {title:'繁城之下', type:'drama', tags:['悬疑','古装'], src:'腾讯视频', links:[{name:'腾讯视频',url:'https://v.qq.com'}]},
+      {title:'漫长的季节', type:'drama', tags:['悬疑','年代'], src:'腾讯视频', links:[{name:'腾讯视频',url:'https://v.qq.com'}]},
+      // 短剧
+      {title:'我在八零年代当后妈', type:'short', tags:['穿越','年代','爽剧'], src:'红果短剧/抖音', links:[{name:'红果短剧',url:'https://www.hongguo.com'},{name:'抖音',url:'https://www.douyin.com'}]},
+      {title:'闪婚老伴', type:'short', tags:['甜宠','爽剧'], src:'红果短剧/抖音', links:[{name:'红果短剧',url:'https://www.hongguo.com'}]},
+      // 纪录片
+      {title:'航拍中国', type:'doc', tags:['风景','人文'], src:'B站/央视网', links:[{name:'B站',url:'https://www.bilibili.com'},{name:'央视网',url:'https://tv.cctv.com'}]},
+      {title:'舌尖上的中国', type:'doc', tags:['美食','人文'], src:'央视网/爱奇艺', links:[{name:'央视网',url:'https://tv.cctv.com'}]},
+      {title:'蓝色星球', type:'doc', tags:['自然','科普'], src:'B站/腾讯视频', links:[{name:'B站',url:'https://www.bilibili.com'}]}
+    ],
+    book:[
+      // 小说
+      {title:'三体', type:'novel', tags:['科幻','硬核','中国'], author:'刘慈欣', src:'微信读书/番茄小说', links:[{name:'微信读书',url:'https://weread.qq.com'},{name:'番茄小说',url:'https://fanqienovel.com'}]},
+      {title:'活着', type:'novel', tags:['现实','文学'], author:'余华', src:'微信读书/番茄小说', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'房思琪的初恋乐园', type:'novel', tags:['文学','现实'], author:'林奕含', src:'微信读书', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'百年孤独', type:'novel', tags:['魔幻现实','文学'], author:'加西亚·马尔克斯', src:'微信读书/网易蜗牛', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'白夜行', type:'novel', tags:['悬疑','推理'], author:'东野圭吾', src:'微信读书/番茄小说', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'解忧杂货店', type:'novel', tags:['治愈','推理'], author:'东野圭吾', src:'微信读书/番茄小说', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'繁花（小说）', type:'novel', tags:['年代','上海'], author:'金宇澄', src:'微信读书', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      // 网文
+      {title:'诡秘之主', type:'webnovel', tags:['奇幻','爽文','群像'], author:'爱潜水的乌贼', src:'起点读书', links:[{name:'起点读书',url:'https://www.qidian.com'}]},
+      {title:'大奉打更人', type:'webnovel', tags:['爽文','仙侠','权谋'], author:'卖报小郎君', src:'起点读书', links:[{name:'起点读书',url:'https://www.qidian.com'}]},
+      {title:'庆余年（原著）', type:'webnovel', tags:['权谋','爽文','穿越'], author:'猫腻', src:'起点读书', links:[{name:'起点读书',url:'https://www.qidian.com'}]},
+      {title:'雪中悍刀行', type:'webnovel', tags:['武侠','爽文'], author:'烽火戏诸侯', src:'起点读书', links:[{name:'起点读书',url:'https://www.qidian.com'}]},
+      // 漫画
+      {title:'海贼王', type:'comic', tags:['热血','冒险','长篇'], author:'尾田荣一郎', src:'腾讯动漫/B站漫画', links:[{name:'腾讯动漫',url:'https://manga.bilibili.com'}]},
+      {title:'咒术回战（漫画）', type:'comic', tags:['热血','战斗'], author:'芥见下下', src:'B站漫画/腾讯动漫', links:[{name:'B站漫画',url:'https://manga.bilibili.com'}]},
+      // 散文
+      {title:'阿勒泰的角落', type:'essay', tags:['治愈','散文','风景'], author:'李娟', src:'微信读书/番茄小说', links:[{name:'微信读书',url:'https://weread.qq.com'}]},
+      {title:'人间草木', type:'essay', tags:['散文','生活','治愈'], author:'汪曾祺', src:'微信读书', links:[{name:'微信读书',url:'https://weread.qq.com'}]}
+    ]
+  };
 
   // ============ 状态 ============
   const data={shows:[],books:[]};
@@ -859,11 +1038,11 @@
   function setUsers(u){ localStorage.setItem(STORAGE_USERS, JSON.stringify(u)); }
   function findAccountsByName(name){ return getUsers().filter(a=>a.name===name); }
   function findAccountByEmail(email){ const e=(email||'').trim().toLowerCase(); return getUsers().find(a=>(a.email||'').toLowerCase()===e); }
-  // 按邮箱或用户名查找账号（登录用）
+  // 按邮箱/手机号/用户名查找账号（登录用）
   function findAccountsByIdentifier(id){
     const v=(id||'').trim(); if(!v) return [];
     const e=v.toLowerCase();
-    return getUsers().filter(a=>a.name===v || (a.email||'').toLowerCase()===e);
+    return getUsers().filter(a=>a.name===v || (a.email||'').toLowerCase()===e || (a.phone||'')===v);
   }
   // 登录面板：输入邮箱/用户名时检测同名，决定是否显示账号编码输入框
   function onLoginIdInput(){
@@ -915,15 +1094,18 @@
     return code;
   }
   // 注册第一步：校验并发送验证码（暂存 pending 于 sessionStorage）
+  function findAccountByPhone(phone){ const v=(phone||'').trim(); return getUsers().find(a=>(a.phone||'')===v); }
   async function sendRegCode(){
-    const name=$('regUser').value.trim(), email=$('regEmail').value.trim(), p=$('regPwd').value, p2=$('regPwd2').value;
+    const name=$('regUser').value.trim(), email=$('regEmail').value.trim(), phone=$('regPhone').value.trim(), p=$('regPwd').value, p2=$('regPwd2').value;
     if(!name||!email||!p){ alert('请填写用户名、邮箱和密码'); return; }
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert('邮箱格式不正确'); return; }
+    if(phone && !/^[0-9]{6,}$/.test(phone)){ alert('手机号格式不正确'); return; }
     if(p!==p2){ alert('两次密码不一致'); return; }
     if(findAccountByEmail(email)){ alert('该邮箱已注册，请直接登录或找回密码'); return; }
+    if(phone && findAccountByPhone(phone)){ alert('该手机号已注册，请直接登录或找回密码'); return; }
     const code=genVerifyCode();
     const shown=await deliverVerifyCode(email, code);
-    sessionStorage.setItem('msl_pending_reg', JSON.stringify({name,email,pwd:p,code}));
+    sessionStorage.setItem('msl_pending_reg', JSON.stringify({name,email,phone,pwd:p,code}));
     $('regCodeWrap').classList.remove('hidden');
     $('regCodeHint').textContent = shown ? ('本地模式验证码：'+shown+'（接入 EmailJS 后改为邮件发送到 '+email+'）') : ('验证码已发送至 '+email+'，请查收邮件');
   }
@@ -935,11 +1117,11 @@
     if(code!==pending.code){ alert('验证码不正确'); return; }
     const accCode=genAccountCode();
     const users=getUsers();
-    users.push({code:accCode, name:pending.name, email:pending.email, pwd:pending.pwd, since:Date.now(), verified:true});
+    users.push({code:accCode, name:pending.name, email:pending.email, phone:pending.phone||'', pwd:pending.pwd, since:Date.now(), verified:true});
     setUsers(users);
     sessionStorage.removeItem('msl_pending_reg');
     currentUser=accCode; currentName=pending.name; localStorage.setItem(STORAGE_SESSION, accCode);
-    $('regUser').value=''; $('regEmail').value=''; $('regPwd').value=''; $('regPwd2').value=''; $('regCode').value='';
+    $('regUser').value=''; $('regEmail').value=''; $('regPhone').value=''; $('regPwd').value=''; $('regPwd2').value=''; $('regCode').value='';
     $('regCodeWrap').classList.add('hidden'); $('regCodeHint').textContent='';
     enterApp();
     setTimeout(()=>alert('注册成功！\n账号编码：'+accCode+'\n（同名账号用此编码区分，可在「我的」查看）'), 200);
@@ -1053,6 +1235,7 @@
     Object.values(MODULES).forEach(m=>loadItems(m));
     loadProfile(); loadRecords(); loadApps(); loadAppOverrides();
     renderMiniProfile();
+    renderAIShortcuts();
     switchView('home');
     // 登录后处理待导入的分享链接
     const pending = sessionStorage.getItem('msl_pending_share');
@@ -1164,12 +1347,13 @@
     activeView=v;
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===v));
     document.querySelectorAll('[data-view-panel]').forEach(p=>p.classList.toggle('hidden', p.dataset.viewPanel!==v));
-    const titles={home:'剧集',books:'书架',profile:'我的',settings:'设置'};
+    const titles={home:'剧集',books:'书架',recommend:'每日推荐',profile:'我的',settings:'设置'};
     const mt=$('mobileTitle'); if(mt) mt.textContent=titles[v]||'';
     const dt=$('desktopTitle'); if(dt) dt.textContent=titles[v]||'';
     const madd=$('mobileAddBtn'); if(madd){ madd.onclick = (v==='home')? ()=>openItemModal('show') : (v==='books')? ()=>openItemModal('book') : ()=>openItemModal('show'); madd.style.display = (v==='home'||v==='books')?'flex':'none'; }
     if(v==='home') renderAll(MODULES.show);
     if(v==='books') renderAll(MODULES.book);
+    if(v==='recommend') renderRecommend();
     if(v==='profile') renderProfile();
     if(v==='settings'){ syncNativeToggle(); renderAppManage(); syncAvatarAuthHint(); syncAccountInfo(); syncOrientationUI(); syncAIConfig(); }
     $('sidebar').classList.remove('open'); $('sidebarBackdrop').classList.remove('open');
@@ -1547,10 +1731,36 @@
     const wrap=$('appShortcuts'); if(!wrap) return;
     const apps=allApps();
     wrap.innerHTML=apps.map(a=>`
-      <button onclick="openApp('${a.id}')" class="card-ins flex flex-col items-center gap-1 py-2 px-1 text-xs hover:opacity-80" title="${escapeHtml(a.name)}${a.scheme?'\n原生: '+escapeHtml(a.scheme):''}\n网页: ${escapeHtml(a.url)}">
+      <button onclick="openApp('${a.id}')" oncontextmenu="onAppLongPress('${a.id}'); return false;" ontouchstart="startAppLongPress('${a.id}', event)" ontouchend="clearAppLongPress()" ontouchmove="clearAppLongPress()" ontouchcancel="clearAppLongPress()" onmousedown="startAppLongPress('${a.id}', event)" onmouseup="clearAppLongPress()" onmouseleave="clearAppLongPress()" class="card-ins flex flex-col items-center gap-1 py-2 px-1 text-xs hover:opacity-80 select-none" title="${escapeHtml(a.name)}${a.scheme?'\n原生: '+escapeHtml(a.scheme):''}\n网页: ${escapeHtml(a.url)}\n长按删除">
         <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm relative" style="background:var(--accent);color:#fff">${escapeHtml((a.name||'A')[0])}${a.scheme&&nativeFirst()?'<span class="app-dot"></span>':''}</div>
         <span class="truncate w-full text-center">${escapeHtml(a.name)}</span>
       </button>`).join('');
+  }
+  // 长按应用：触发二次确认删除
+  let appLongPressTimer=null;
+  function startAppLongPress(id, e){
+    // 鼠标右键 / 触摸长按：500ms 后触发删除
+    if(e && e.button===2) return; // 右键交给 contextmenu
+    clearAppLongPress();
+    appLongPressTimer=setTimeout(()=>{ appLongPressTimer=null; longPressDeleteApp(id); }, 500);
+  }
+  function clearAppLongPress(){
+    if(appLongPressTimer){ clearTimeout(appLongPressTimer); appLongPressTimer=null; }
+  }
+  function onAppLongPress(id){ longPressDeleteApp(id); }
+  function longPressDeleteApp(id){
+    const a=allApps().find(x=>x.id===id); if(!a) return;
+    // 第一次确认
+    if(!confirm('长按检测到删除操作\n确认删除应用「'+a.name+'」？'+(a.preset?'（预置应用，可随时在设置中恢复）':''))) return;
+    // 二次确认（弹窗再次确认）
+    if(!confirm('⚠️ 二次确认\n再次确认将永久从快捷栏移除「'+a.name+'」，确定？')) return;
+    if(a.preset){
+      appOverrides[id]=Object.assign({}, appOverrides[id]||{}, {deleted:true, name:a.name});
+      saveAppOverrides();
+    } else {
+      customApps=customApps.filter(x=>x.id!==id); saveApps();
+    }
+    renderAppShortcuts(); renderAppManage(); buildAppDatalist();
   }
   function renderAppManage(){
     const wrap=$('appManageList'); if(!wrap) return;
@@ -1644,6 +1854,120 @@
   function buildAppDatalist(){
     const dl=$('appList'); if(!dl) return;
     dl.innerHTML=allApps().map(a=>`<option value="${escapeHtml(a.name)}"></option>`).join('');
+  }
+
+  // ============ AI 助手板块 ============
+  function renderAIShortcuts(){
+    const wrap=$('aiShortcutList'); if(!wrap) return;
+    // 侧边栏只显示前 4 个最热门的
+    const list=AI_ASSISTANTS.slice(0,4);
+    wrap.innerHTML=list.map((a,i)=>`
+      <button onclick="openAIAssistant(${i})" class="card-ins flex flex-col items-center gap-1 py-2 px-1 text-xs hover:opacity-80" title="${escapeHtml(a.name)}\n${escapeHtml(a.desc)}">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm relative" style="background:var(--accent);color:#fff">${escapeHtml(a.name[0])}${a.scheme&&nativeFirst()?'<span class="app-dot"></span>':''}</div>
+        <span class="truncate w-full text-center">${escapeHtml(a.name)}</span>
+      </button>`).join('');
+  }
+  function renderAIPanel(){
+    const wrap=$('aiPanelList'); if(!wrap) return;
+    wrap.innerHTML=AI_ASSISTANTS.map((a,i)=>`
+      <button onclick="openAIAssistant(${i})" class="card-ins p-3 text-left hover:opacity-80" title="${escapeHtml(a.desc)}">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center text-sm mb-2" style="background:var(--accent);color:#fff">${escapeHtml(a.name[0])}</div>
+        <div class="text-sm font-medium truncate">${escapeHtml(a.name)}</div>
+        <div class="text-xs text-muted-c line-clamp-2 mt-0.5">${escapeHtml(a.desc)}</div>
+      </button>`).join('');
+  }
+  function openAIAssistantPanel(){
+    renderAIPanel();
+    $('aiPanelModal').classList.remove('hidden');
+  }
+  function closeAIAssistantPanel(){ $('aiPanelModal').classList.add('hidden'); }
+  function openAIAssistant(idx){
+    const a=AI_ASSISTANTS[idx]; if(!a) return;
+    if(nativeFirst() && a.scheme){ launchNative(a.scheme, a.url); }
+    else { window.open(a.url,'_blank','noopener'); }
+  }
+
+  // ============ 每日推荐 ============
+  // 按用户已添加剧集/书籍的类型与标签做加权匹配，过滤掉已存在同名条目
+  function recommendForModule(m){
+    const userItems=itemsOf(m);
+    const existTitles=new Set(userItems.map(it=>(it.title||'').trim().toLowerCase()));
+    // 收集用户的偏好向量：类型频次 + 标签频次
+    const typeFreq={}, tagFreq={};
+    userItems.forEach(it=>{
+      if(it.type) typeFreq[it.type]=(typeFreq[it.type]||0)+1;
+      (it.tags||[]).forEach(t=>{ tagFreq[t]=(tagFreq[t]||0)+1; });
+    });
+    const lib=RECOMMEND_LIB[m.key]||[];
+    const scored=lib.map(r=>{
+      const typeScore = typeFreq[r.type]||0;
+      const tagScore = (r.tags||[]).reduce((s,t)=>s+(tagFreq[t]||0),0);
+      return { r, score: typeScore*2 + tagScore };
+    }).filter(o=>!existTitles.has(o.r.title.trim().toLowerCase()));
+    // 部分按相关性降序，部分随机，混合
+    scored.sort((a,b)=>b.score-a.score);
+    const top = scored.filter(o=>o.score>0).slice(0,6);
+    const remain = scored.filter(o=>o.score===0);
+    // 打乱 remain
+    for(let i=remain.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [remain[i],remain[j]]=[remain[j],remain[i]]; }
+    const fill = remain.slice(0, Math.max(0, 6-top.length));
+    return [...top.map(o=>o.r), ...fill];
+  }
+  function recommendCardHTML(m, r){
+    const typeLbl=typeLabel(m, r.type);
+    const tagPart=(r.tags||[]).length?`<div class="flex flex-wrap gap-1 mt-1">${r.tags.slice(0,4).map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+    const linkPart=(r.links||[]).length?`<div class="flex flex-wrap gap-1.5 mt-2">${r.links.map(l=>`<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="tag-chip active" onclick="event.stopPropagation()">${escapeHtml(l.name)} <i class="fa fa-external-link text-[10px] ml-0.5"></i></a>`).join('')}</div>`:'';
+    const authorPart = (m.key==='book' && r.author) ? `<div class="text-xs text-muted-c mt-0.5">作者：${escapeHtml(r.author)}</div>` : '';
+    return `<div class="card-ins card-hover p-3 flex gap-3">
+      <div class="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 text-xl" style="background:var(--soft);color:var(--accent)"><i class="fa ${m.key==='book'?'fa-book':'fa-film'}"></i></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <div class="text-sm font-medium truncate">${escapeHtml(r.title)}</div>
+          <span class="text-xs text-muted-c">${typeLbl}</span>
+        </div>
+        ${authorPart}
+        ${tagPart}
+        <div class="text-xs text-muted-c mt-1">来源：${escapeHtml(r.src||'')}</div>
+        ${linkPart}
+        <button onclick="addRecommendToItems('${m.key}', ${JSON.stringify(r).replace(/"/g,'&quot;')})" class="btn-soft px-3 py-1 text-xs mt-2"><i class="fa fa-plus mr-1"></i>加入${m.label}</button>
+      </div>
+    </div>`;
+  }
+  function addRecommendToItems(key, r){
+    const m=MODULES[key];
+    // 已有同名则跳过
+    if(itemsOf(m).some(it=>(it.title||'').trim().toLowerCase()===r.title.trim().toLowerCase())){
+      alert('「'+r.title+'」已存在于你的'+m.label); return;
+    }
+    itemsOf(m).unshift({
+      id:uid(), createdAt:Date.now(),
+      title:r.title, type:(r.type in m.types)?r.type:m.defaultType, status:m.defaultStatus,
+      [m.pField]:0, [m.tField]:0, rating:0, img:'',
+      tags:(r.tags||[]).slice(0,5),
+      note:'来源：每日推荐 · '+(r.src||''),
+      ...(m.extraFields.length && r.author?Object.fromEntries(m.extraFields.map(f=>[f.key, r.author||''])):{})
+    });
+    saveItems(m);
+    alert('已加入'+m.label+'，可在「'+m.label+'」列表查看');
+    renderRecommend();
+  }
+  function renderRecommend(){
+    const intro=$('recommendIntro');
+    const showCount=data.shows.length, bookCount=data.books.length;
+    if(intro) intro.textContent = '基于你已添加的 '+showCount+' 部剧集、'+bookCount+' 本书籍，按类型/标签偏好推荐新内容并附常见观看/阅读来源链接。添加越多，推荐越精准。';
+    const showWrap=$('recommendShowList'), bookWrap=$('recommendBookList');
+    const shows=recommendForModule(MODULES.show);
+    const books=recommendForModule(MODULES.book);
+    if(showWrap){
+      showWrap.innerHTML = shows.length
+        ? shows.map(r=>recommendCardHTML(MODULES.show, r)).join('')
+        : '<p class="text-muted-c text-sm col-span-full">暂无推荐，先添加几部剧集吧</p>';
+    }
+    if(bookWrap){
+      bookWrap.innerHTML = books.length
+        ? books.map(r=>recommendCardHTML(MODULES.book, r)).join('')
+        : '<p class="text-muted-c text-sm col-span-full">暂无推荐，先添加几本书吧</p>';
+    }
   }
 
   // ============ 记录本 ============
@@ -1759,6 +2083,17 @@
     $('profileCode').textContent=currentUser||'-';
     $('profileSince').textContent = profile.since ? new Date(profile.since).toLocaleDateString('zh-CN') : '今天';
     renderAvatarInto($('profileAvatar'), name);
+    // 签名 / 邮箱 / 手机号
+    const sig=$('profileSignature'); if(sig) sig.value=profile.signature||'';
+    const acc=getUsers().find(a=>a.code===currentUser);
+    const emailShow=$('profileEmailShow'), phoneShow=$('profilePhoneShow');
+    const emailBtn=$('profileEmailBtn'), phoneBtn=$('profilePhoneBtn');
+    if(emailShow) emailShow.textContent = (acc && acc.email) ? acc.email : '未绑定';
+    if(emailBtn) emailBtn.textContent = (acc && acc.email) ? '修改邮箱' : '绑定邮箱';
+    if(phoneShow) phoneShow.textContent = (acc && acc.phone) ? acc.phone : '未绑定';
+    if(phoneBtn) phoneBtn.textContent = (acc && acc.phone) ? '修改手机号' : '绑定手机号';
+    syncDisplayStyleUI();
+    // 统计
     $('pStatShows').textContent=data.shows.length;
     $('pStatBooks').textContent=data.books.length;
     const rated=[...data.shows,...data.books].filter(x=>x.rating>0);
@@ -1766,12 +2101,61 @@
     $('pStatRecords').textContent=records.length;
     const recent=[...data.shows.map(x=>({...x,_k:'show'})),...data.books.map(x=>({...x,_k:'book'}))]
       .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,10);
-    $('recentList').innerHTML = recent.length ? recent.map(it=>{
-      const m=MODULES[it._k];
-      const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
-      const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
-      return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2">${img}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
-    }).join('') : '<p class="text-muted-c text-sm col-span-full">暂无记录</p>';
+    const style=getDisplayStyle();
+    const wrap=$('recentList');
+    if(!recent.length){ wrap.innerHTML='<p class="text-muted-c text-sm col-span-full">暂无记录</p>'; return; }
+    if(style==='minimal'){
+      wrap.className='flex flex-col gap-2';
+      wrap.innerHTML=recent.map(it=>{
+        const m=MODULES[it._k];
+        return `<div class="card-ins card-hover cursor-pointer p-3 flex items-center gap-3" onclick="openDetail('${m.key}','${it.id}')">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:var(--soft);color:var(--accent)"><i class="fa ${m.key==='book'?'fa-book':'fa-film'}"></i></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">${escapeHtml(it.title)}</div>
+            <div class="text-xs text-muted-c truncate">${m.label}${it.rating?' · '+starStr(it.rating):''}</div>
+          </div>
+          <span class="text-xs text-muted-c">${progressStr(m,it)}</span>
+        </div>`;
+      }).join('');
+    } else if(style==='grid'){
+      wrap.className='grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2';
+      wrap.innerHTML=recent.map(it=>{
+        const m=MODULES[it._k];
+        const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-xl"></i></div>`;
+        const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}</div>`;
+      }).join('');
+    } else if(style==='magazine'){
+      wrap.className='grid grid-cols-1 sm:grid-cols-2 gap-3';
+      wrap.innerHTML=recent.map((it,idx)=>{
+        const m=MODULES[it._k];
+        const fb=`<div class="w-24 h-32 rounded-lg soft-bg flex items-center justify-center text-muted-c shrink-0"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
+        const img=it.img?`<img src="${it.img}" class="w-24 h-32 object-cover rounded-lg shrink-0" onerror="this.outerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
+        const lead = idx===0 ? 'sm:col-span-2' : '';
+        const bigImg = idx===0 && it.img ? `<img src="${it.img}" class="w-full h-40 sm:h-48 object-cover rounded-lg mb-2" onerror="this.style.display='none'">` : '';
+        return `<div class="card-ins card-hover cursor-pointer p-3 ${lead}" onclick="openDetail('${m.key}','${it.id}')">
+          ${bigImg}
+          <div class="flex gap-3">
+            ${idx===0?'':img}
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium truncate">${escapeHtml(it.title)}</div>
+              <div class="text-xs text-muted-c">${m.label} · ${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
+              ${it.rating?'<div class="text-xs mt-1">'+starStr(it.rating)+'</div>':''}
+              ${it.note?'<div class="text-xs text-muted-c mt-1 line-clamp-2">'+escapeHtml(it.note)+'</div>':''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      // card 默认
+      wrap.className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3';
+      wrap.innerHTML=recent.map(it=>{
+        const m=MODULES[it._k];
+        const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
+        const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2">${img}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
+      }).join('');
+    }
   }
   // 渲染头像：有图显图，否则首字母
   function renderAvatarInto(el, name){
@@ -1792,6 +2176,74 @@
     profile.name=v; if(!profile.since) profile.since=Date.now();
     saveProfile(); renderMiniProfile(); renderProfile();
     alert('已保存');
+  }
+  // 个性签名
+  function saveProfileSignature(){
+    const v=$('profileSignature').value.trim();
+    profile.signature=v; if(!profile.since) profile.since=Date.now();
+    saveProfile();
+    alert('签名已保存');
+  }
+  // 展示页面样式：card / minimal / grid / magazine
+  function getDisplayStyle(){ return profile.displayStyle || 'card'; }
+  function setDisplayStyle(s){
+    profile.displayStyle=s; if(!profile.since) profile.since=Date.now();
+    saveProfile(); renderProfile();
+  }
+  function syncDisplayStyleUI(){
+    const cur=getDisplayStyle();
+    document.querySelectorAll('.display-style-btn').forEach(b=>{
+      const on=b.dataset.style===cur;
+      b.className='display-style-btn p-3 rounded-xl text-sm '+(on?'btn-soft':'btn-outline');
+    });
+  }
+  // 绑定/修改邮箱：发送验证码到新邮箱
+  async function bindEmail(){
+    if(!currentUser){ alert('请先登录'); return; }
+    const users=getUsers();
+    const acc=users.find(a=>a.code===currentUser); if(!acc){ alert('账号异常'); return; }
+    const cur=acc.email||'';
+    const ne=prompt('请输入要绑定的邮箱'+(cur?('（当前：'+cur+'，留空仅查看当前邮箱）'):''), cur);
+    if(ne===null) return;
+    const email=ne.trim();
+    if(!email){ if(!cur){ alert('请输入邮箱'); return; } alert('当前邮箱：'+cur); return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert('邮箱格式不正确'); return; }
+    if(email.toLowerCase()===cur.toLowerCase()){ alert('邮箱未变化'); return; }
+    if(findAccountByEmail(email)){ alert('该邮箱已被其他账号绑定'); return; }
+    // 需通过新邮箱验证码验证
+    const code=genVerifyCode();
+    const shown=await deliverVerifyCode(email, code);
+    sessionStorage.setItem('msl_pending_bindEmail', JSON.stringify({email, code}));
+    const ans=prompt(shown?('本地模式验证码：'+shown+'\n请输入验证码完成绑定'):'验证码已发送至 '+email+'，请查收邮件后输入');
+    if(ans===null) return;
+    if(ans.trim()!==code){ alert('验证码不正确，绑定失败'); return; }
+    acc.email=email; setUsers(users);
+    sessionStorage.removeItem('msl_pending_bindEmail');
+    renderProfile(); syncAccountInfo();
+    alert('邮箱已'+(cur?'修改为新邮箱':'绑定')+': '+email);
+  }
+  // 绑定/修改手机号
+  async function bindPhone(){
+    if(!currentUser){ alert('请先登录'); return; }
+    const users=getUsers();
+    const acc=users.find(a=>a.code===currentUser); if(!acc){ alert('账号异常'); return; }
+    const cur=acc.phone||'';
+    const np=prompt('请输入要绑定的手机号'+(cur?('（当前：'+cur+'，留空取消绑定）'):''), cur);
+    if(np===null) return;
+    const phone=np.trim();
+    if(!phone){
+      if(!cur){ alert('请输入手机号'); return; }
+      if(!confirm('确定取消当前手机号绑定？此后将不能使用手机号登录。')) return;
+      acc.phone=''; setUsers(users); renderProfile(); syncAccountInfo();
+      alert('已取消手机号绑定'); return;
+    }
+    if(!/^[0-9]{6,}$/.test(phone)){ alert('手机号格式不正确'); return; }
+    if(phone===cur){ alert('手机号未变化'); return; }
+    if(findAccountByPhone(phone)){ alert('该手机号已被其他账号绑定'); return; }
+    // 手机号本机模式直接生效（接入短信网关后改为验证码验证）
+    acc.phone=phone; setUsers(users);
+    renderProfile(); syncAccountInfo();
+    alert('手机号已'+(cur?'修改为新号码':'绑定')+': '+phone);
   }
   // ============ 头像设置（首次授权弹窗 + 图库选择） ============
   function avatarAuthKey(){ return 'msl_avatar_auth_'+currentUser; }
@@ -1852,6 +2304,8 @@
     if(s) s.textContent = currentName || (acc?acc.name:'') || '-';
     if(e) e.textContent = (acc && acc.email) ? acc.email : '未绑定';
     if(c) c.textContent = currentUser;
+    // 顺便在设置里也显示手机号（如果有 id）
+    const ph=$('setPhone'); if(ph) ph.textContent = (acc && acc.phone) ? acc.phone : '未绑定';
   }
   // 设置页：同步横竖屏选择 UI
   function syncOrientationUI(){
@@ -2066,11 +2520,58 @@
     }catch(e){ alert('下载失败：'+e.message); }
   }
 
+  // ============ 下拉刷新（仅触摸设备，主页/书架/推荐页生效） ============
+  let pullState={ startY:0, pulling:false, threshold:70 };
+  function bindPullToRefresh(){
+    const main=document.querySelector('main'); if(!main) return;
+    main.addEventListener('touchstart', e=>{
+      // 仅在视口顶部（main 内滚动到顶部）才开始下拉
+      if(window.scrollY>0 && main.getBoundingClientRect().top<0) return;
+      const t=e.touches[0];
+      pullState.startY=t.clientY; pullState.pulling=true;
+      const ptr=$('pullToRefresh'); if(ptr){ ptr.classList.remove('active'); ptr.style.height='0px'; ptr.querySelector('.ptr-text').textContent='下拉刷新'; }
+    }, {passive:true});
+    main.addEventListener('touchmove', e=>{
+      if(!pullState.pulling) return;
+      const t=e.touches[0];
+      const dy=t.clientY-pullState.startY;
+      if(dy<=0){ const ptr=$('pullToRefresh'); if(ptr){ ptr.style.height='0px'; } return; }
+      const ptr=$('pullToRefresh'); if(!ptr) return;
+      // 仅在主页/书架/推荐页生效
+      if(!['home','books','recommend'].includes(activeView)) return;
+      const h=Math.min(pullState.threshold*1.5, dy*0.5);
+      ptr.style.height=h+'px';
+      ptr.querySelector('.ptr-text').textContent = h>=pullState.threshold ? '松开刷新' : '下拉刷新';
+    }, {passive:true});
+    main.addEventListener('touchend', ()=>{
+      if(!pullState.pulling) return;
+      pullState.pulling=false;
+      const ptr=$('pullToRefresh'); if(!ptr){ return; }
+      const h=parseFloat(ptr.style.height)||0;
+      if(h>=pullState.threshold){
+        ptr.classList.add('active');
+        ptr.style.height=pullState.threshold+'px';
+        ptr.querySelector('.ptr-text').textContent='刷新中...';
+        setTimeout(()=>{
+          ptr.style.height='0px';
+          ptr.classList.remove('active');
+          // 触发对应视图的刷新渲染
+          if(activeView==='home') renderAll(MODULES.show);
+          else if(activeView==='books') renderAll(MODULES.book);
+          else if(activeView==='recommend') renderRecommend();
+        }, 600);
+      } else {
+        ptr.style.height='0px';
+      }
+    }, {passive:true});
+  }
+
   // ============ 初始化 ============
   function init(){
     applyTheme(); applySidebarState(); applyOrientation(); applyDeviceClass();
     setupPWA();
-    syncNativeToggle(); renderAppShortcuts();
+    syncNativeToggle(); renderAppShortcuts(); renderAIShortcuts();
+    bindPullToRefresh();
     migrateOldUsers(); // 迁移旧版同名互斥账号为数组+编码格式
     const sess=localStorage.getItem(STORAGE_SESSION);
     if(sess){
