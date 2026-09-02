@@ -833,7 +833,13 @@
       defaultType:'anime', defaultStatus:'want',
       pField:'watched', tField:'total', pLabel:'已看', tLabel:'总集数', unit:'集',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#D4B5AD'],
-      tagPresets:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','校园','运动','音乐','治愈系','神作','年度最佳','追更中','已弃','国创','日番','欧美','纪录','爽剧','群像','黑暗','年代','穿越'],
+      tagPresetGroups:[
+        {name:'评价', tags:['神作','年度最佳','治愈系','追更中','已弃','烂尾','佳作','口碑爆棚']},
+        {name:'题材', tags:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','校园','运动','音乐','推理','群像','黑暗','年代','穿越','纪录','冒险','恐怖']},
+        {name:'语言', tags:['中文','国创','日番','欧美','韩剧','动画电影','真人','配音']},
+        {name:'男频', tags:['爽剧','逆袭','权谋','战斗','装逼','打脸','热血男','后宫']},
+        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言']}
+      ],
       extraFields:[], stateKey:'shows' },
     book: { key:'book', label:'书架', labelSingle:'书籍', viewName:'books',
       storageKey:u=>'msl_books_'+u,
@@ -842,7 +848,13 @@
       defaultType:'novel', defaultStatus:'want',
       pField:'chaptersRead', tField:'totalChapters', pLabel:'已读', tLabel:'总章节', unit:'章',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#c8b8dd'],
-      tagPresets:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','青春','文学','推理','武侠','仙侠','爽文','群像','黑暗','治愈系','神作','年度最佳','追更中','已弃','名著','网文','散文','穿越'],
+      tagPresetGroups:[
+        {name:'评价', tags:['神作','年度最佳','治愈系','追更中','已弃','烂尾','佳作','口碑爆棚']},
+        {name:'题材', tags:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','青春','文学','推理','武侠','仙侠','群像','黑暗','穿越','冒险','恐怖','散文']},
+        {name:'语言', tags:['中文','网文','日轻','欧美','翻译','原创','连载','完结']},
+        {name:'男频', tags:['爽文','后宫','逆袭','权谋','战斗','装逼','打脸','热血男','升级流']},
+        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','种田文']}
+      ],
       extraFields:[{key:'author',label:'作者',placeholder:'作者（可选）'}], stateKey:'books' }
   };
 
@@ -925,8 +937,8 @@
 
   // ============ 状态 ============
   const data={shows:[],books:[]};
-  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null},
-             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null} };
+  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null},
+             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
@@ -1215,6 +1227,7 @@
     localStorage.removeItem(STORAGE_SESSION);
     sessionStorage.removeItem('msl_pending_reg'); sessionStorage.removeItem('msl_pending_rcv');
     currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[]; appOverrides={}; appOrder=[];
+    ui.show.userTags=null; ui.show.manualOrder=null; ui.book.userTags=null; ui.book.manualOrder=null;
     $('appShell').classList.add('hidden'); $('loginModal').classList.remove('hidden');
     $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
     alert('账号已注销，本机相关数据已删除。');
@@ -1240,6 +1253,7 @@
     if(!confirm('确定退出登录？')) return;
     localStorage.removeItem(STORAGE_SESSION);
     currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[]; appOverrides={}; appOrder=[];
+    ui.show.userTags=null; ui.show.manualOrder=null; ui.book.userTags=null; ui.book.manualOrder=null;
     $('appShell').classList.add('hidden');
     $('loginModal').classList.remove('hidden');
     $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
@@ -1593,22 +1607,51 @@
       : '<span class="text-xs text-muted-c">暂无标签</span>';
     renderTagPresets();
   }
+  // 我的标签库：用户自定义标签（按模块、按账号持久化），添加后可在后续条目中复用
+  function userTagsKey(mk){ return 'msl_user_tags_'+mk+'_'+(currentUser||'guest'); }
+  function loadUserTags(mk){ try{ return JSON.parse(localStorage.getItem(userTagsKey(mk))||'[]'); }catch(e){ return []; } }
+  function saveUserTags(mk, arr){ localStorage.setItem(userTagsKey(mk), JSON.stringify(arr)); }
+  function getUserTags(mk){ if(!ui[mk].userTags) ui[mk].userTags=loadUserTags(mk); return ui[mk].userTags; }
+  function addUserTagToLibrary(mk, t){
+    if(!t) return;
+    const arr=getUserTags(mk);
+    if(!arr.includes(t)){ arr.push(t); saveUserTags(mk, arr); }
+  }
+  function deleteUserTagFromLibrary(mk, t){
+    const arr=getUserTags(mk);
+    const i=arr.indexOf(t);
+    if(i>=0){ arr.splice(i,1); saveUserTags(mk, arr); }
+  }
   function renderTagPresets(){
     const wrap=$('tagPresetList'); if(!wrap) return;
     const m=MODULES[editingModuleKey];
-    const presets=(m && m.tagPresets)||[];
-    if(!presets.length){ wrap.innerHTML=''; return; }
-    wrap.innerHTML=presets.map(t=>{
-      const on=editingTags.includes(t);
-      return `<button type="button" onclick="toggleTagPreset(${JSON.stringify(t).replace(/"/g,'&quot;')})" class="tag-chip ${on?'active':''}">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+    const groups=(m && m.tagPresetGroups)||[];
+    const myTags=getUserTags(editingModuleKey);
+    // 分类预设
+    const groupHTML=groups.map(g=>{
+      const chips=g.tags.map(t=>{
+        const on=editingTags.includes(t);
+        return `<button type="button" onclick="toggleTagPreset(${JSON.stringify(t).replace(/"/g,'&quot;')})" class="tag-chip ${on?'active':''}">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+      }).join('');
+      return `<div class="flex items-start gap-2"><span class="text-xs text-muted-c shrink-0 pt-1 w-12">${escapeHtml(g.name)}</span><div class="flex flex-wrap gap-1.5 flex-1">${chips}</div></div>`;
     }).join('');
+    // 我的标签（可长按删除）
+    const myHTML = myTags.length ? (()=>{
+      const chips=myTags.map(t=>{
+        const on=editingTags.includes(t);
+        const j=JSON.stringify(t).replace(/"/g,'&quot;');
+        return `<button type="button" onclick="toggleTagPreset(${j})" oncontextmenu="onUserTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}'); return false" ontouchstart="startUserTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}')" ontouchend="clearUserTagLongPress()" ontouchmove="clearUserTagLongPress()" ontouchcancel="clearUserTagLongPress()" class="tag-chip ${on?'active':''}" title="点击添加 / 长按从标签库删除">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':' <i class="fa fa-times-circle text-muted-c ml-0.5" style="opacity:.5"></i>'}</button>`;
+      }).join('');
+      return `<div class="flex items-start gap-2"><span class="text-xs text-muted-c shrink-0 pt-1 w-12">我的</span><div class="flex flex-wrap gap-1.5 flex-1">${chips}</div></div>`;
+    })() : '';
+    wrap.innerHTML = (groupHTML? `<div class="space-y-1.5">${groupHTML}</div>`:'') + (myHTML? `<div class="space-y-1.5 mt-1.5 pt-1.5 border-t border-[var(--border)]">${myHTML}</div>`:'');
   }
   function toggleTagPreset(t){
     const i=editingTags.indexOf(t);
     if(i>=0) editingTags.splice(i,1); else editingTags.push(t);
     renderTagList();
   }
-  // 「+标签」按钮：取输入框内容，为空则弹窗输入，添加后清空输入框
+  // 「+标签」按钮：取输入框内容，为空则弹窗输入，添加后清空输入框；同时存入我的标签库
   function addTagFromInput(){
     const inp=$('fldTagInput');
     let v=(inp && inp.value||'').trim();
@@ -1618,10 +1661,27 @@
       v=p.trim();
       if(!v){ alert('标签不能为空'); return; }
     }
-    if(!editingTags.includes(v)){ editingTags.push(v); renderTagList(); }
+    if(!editingTags.includes(v)){ editingTags.push(v); }
     else { alert('该标签已添加'); }
+    // 存入我的标签库（后续可复用）
+    addUserTagToLibrary(editingModuleKey, v);
+    renderTagList();
     if(inp) inp.value='';
     if(inp) inp.focus();
+  }
+  // 长按「我的标签」chip：从标签库删除（需确认）
+  let userTagLongPressTimer=null;
+  function startUserTagLongPress(e, jTag){
+    clearUserTagLongPress();
+    userTagLongPressTimer=setTimeout(()=>{ userTagLongPressTimer=null; confirmDeleteUserTag(jTag); }, 500);
+  }
+  function clearUserTagLongPress(){ if(userTagLongPressTimer){ clearTimeout(userTagLongPressTimer); userTagLongPressTimer=null; } }
+  function onUserTagLongPress(e, jTag){ e.preventDefault(); confirmDeleteUserTag(jTag); }
+  function confirmDeleteUserTag(jTag){
+    let t; try{ t=JSON.parse(jTag); }catch(e){ return; }
+    if(!confirm('从「我的标签库」删除「'+t+'」？\n（已添加到条目的标签不受影响）')) return;
+    deleteUserTagFromLibrary(editingModuleKey, t);
+    renderTagList();
   }
   function removeTag(i){ editingTags.splice(i,1); renderTagList(); }
   function switchImgSrc(mode){
