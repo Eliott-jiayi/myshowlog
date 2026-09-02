@@ -584,6 +584,13 @@
           </div>
         </div>
 
+        <!-- 网页刷新 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">网页刷新</h3>
+          <p class="text-xs text-muted-c mb-3">重新加载当前页面，用于更新到最新版本或修复异常显示。</p>
+          <button onclick="refreshPage()" class="px-4 py-2 text-sm rounded-lg btn-pri"><i class="fa fa-refresh mr-1"></i>刷新网页</button>
+        </div>
+
         <div class="card-ins p-5 mb-6">
           <h3 class="font-medium mb-3">主题色调</h3>
           <div class="flex flex-wrap gap-4">
@@ -1174,6 +1181,11 @@
   // ============ 横竖屏自适应（随系统切换） ============
   // 横竖屏模式：auto(跟随设备) / portrait(强制竖屏) / landscape(强制横屏)
   function orientationMode(){ return localStorage.getItem('msl_orient_mode') || 'auto'; }
+  // 网页刷新：重新加载当前页面
+  function refreshPage(){
+    if(!confirm('确定刷新网页？未保存的数据可能丢失。')) return;
+    location.reload();
+  }
   function setOrientationMode(m){
     localStorage.setItem('msl_orient_mode', m);
     applyOrientation();
