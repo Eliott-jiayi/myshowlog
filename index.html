@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="cream" data-mode="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#D4B5AD"/>
+  <meta name="description" content="本地存储的剧集与书架记录本，支持标签/评分/统计/分享，可安装为应用"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="MyShowLog"/>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23D4B5AD'/%3E%3Cpath fill='%23fff' d='M44 56h92a8 8 0 0 1 8 8v10H36V64a8 8 0 0 1 8-8z'/%3E%3Cg fill='%23D4B5AD'%3E%3Cpath d='M40 66 54 52l12 12-12 12z'/%3E%3Cpath d='M72 66l12-12 12 12-12 12z'/%3E%3Cpath d='M104 66l12-12 12 12-12 12z'/%3E%3Cpath d='M136 66l12-12 6 6-12 12z'/%3E%3C/g%3E%3Crect x='36' y='74' width='108' height='54' rx='8' fill='%23fff' opacity='.18'/%3E%3Crect x='44' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.85'/%3E%3Crect x='74' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.7'/%3E%3Crect x='104' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.85'/%3E%3C/svg%3E"/>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23D4B5AD'/%3E%3Cpath fill='%23fff' d='M44 56h92a8 8 0 0 1 8 8v10H36V64a8 8 0 0 1 8-8z'/%3E%3Cg fill='%23D4B5AD'%3E%3Cpath d='M40 66 54 52l12 12-12 12z'/%3E%3Cpath d='M72 66l12-12 12 12-12 12z'/%3E%3Cpath d='M104 66l12-12 12 12-12 12z'/%3E%3Cpath d='M136 66l12-12 6 6-12 12z'/%3E%3C/g%3E%3Crect x='36' y='74' width='108' height='54' rx='8' fill='%23fff' opacity='.18'/%3E%3Crect x='44' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.85'/%3E%3Crect x='74' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.7'/%3E%3Crect x='104' y='82' width='22' height='38' rx='3' fill='%23fff' opacity='.85'/%3E%3C/svg%3E"/>
+  <title>MyShowLog｜我的剧集与书架记录本</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Noto Sans SC"', 'system-ui', 'sans-serif'] } } } }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+    :root {
+      --bg:#F8F5F2; --card:#ffffff; --text:#443B39; --muted:#A89894;
+      --accent:#D4B5AD; --accent-hover:#c2a299; --soft:#F3E8E4; --border:#E8DDD9;
+      --shadow:rgba(180,160,155,0.12);
+      --state-want:#b8c8e0; --state-watching:#f8dfb8; --state-done:#b8ddc9;
+      --star-empty:#dcd5d2;
+    }
+    [data-theme="ocean"] { --bg:#EEF5F8; --card:#fff; --text:#2C4A5C; --muted:#7A9BAA; --accent:#6BA8C0; --accent-hover:#589BB5; --soft:#D9E8EE; --border:#C5D8E0; --shadow:rgba(110,160,180,0.14); --star-empty:#c5d2d8; }
+    [data-theme="forest"] { --bg:#F0F4EC; --card:#fff; --text:#3A4A36; --muted:#8A9B82; --accent:#8FB576; --accent-hover:#7FA566; --soft:#DDE8D4; --border:#C9D8BD; --shadow:rgba(140,180,120,0.14); --star-empty:#cdd6c5; }
+    [data-theme="sunset"] { --bg:#FBF0EA; --card:#fff; --text:#5C3A2E; --muted:#B08A7A; --accent:#E89570; --accent-hover:#D88560; --soft:#F5D9CB; --border:#E8C5B3; --shadow:rgba(220,140,110,0.16); --star-empty:#e6d5cd; }
+    [data-theme="lavender"] { --bg:#F2EEF6; --card:#fff; --text:#3F3650; --muted:#9088A8; --accent:#B09BC8; --accent-hover:#A08BB8; --soft:#DFD5EA; --border:#C9BAD8; --shadow:rgba(160,150,190,0.16); --star-empty:#d6cfe0; }
+    [data-mode="dark"] { --bg:#1c1c22; --card:#272730; --text:#e8e8ee; --muted:#8a8a96; --soft:#33333f; --border:#444452; --shadow:rgba(0,0,0,0.35); --star-empty:#555560; }
+
+    body { background-color:var(--bg); color:var(--text); font-family:'Noto Sans SC',sans-serif; transition:background-color .3s,color .3s; }
+    .card-ins { background:var(--card); color:var(--text); border-radius:20px; box-shadow:0 4px 14px var(--shadow); transition:background-color .3s,color .3s,box-shadow .2s; }
+    .card-hover:hover { box-shadow:0 8px 22px var(--shadow); }
+    .input-ins { border-radius:14px; border:1px solid var(--border); background:var(--card); color:var(--text); transition:.25s; }
+    .input-ins:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent); }
+    textarea.input-ins { resize:none; }
+    .btn-soft { border-radius:14px; background:var(--accent); color:#fff; transition:.2s; }
+    .btn-soft:hover { background:var(--accent-hover); }
+    .btn-outline { border-radius:14px; border:1px solid var(--accent); color:var(--text); transition:.2s; }
+    .btn-outline:hover { background:var(--soft); }
+    .image-preview { object-fit:cover; border-radius:14px; }
+    .modal-wrap { background:rgba(0,0,0,0.4); backdrop-filter:blur(2px); }
+    .star { cursor:pointer; font-size:22px; color:var(--star-empty); transition:.15s; }
+    .star.active { color:var(--accent); }
+    .tag-item { background:var(--soft); color:var(--text); border-radius:999px; font-size:12px; padding:2px 10px; cursor:pointer; transition:.15s; }
+    .tag-item:hover { filter:brightness(0.96); }
+    .tag-chip { background:var(--soft); color:var(--text); border-radius:999px; font-size:12px; padding:3px 10px; cursor:pointer; transition:.15s; }
+    .tag-chip.active { background:var(--accent); color:#fff; }
+    .soft-bg { background:var(--soft); }
+    .soft-bg-50 { background:color-mix(in srgb,var(--soft) 55%,transparent); }
+    .text-muted-c { color:var(--muted); }
+    .badge-want { background:var(--state-want); color:#3a3a3a; }
+    .badge-watching { background:var(--state-watching); color:#3a3a3a; }
+    .badge-done { background:var(--state-done); color:#3a3a3a; }
+    .stat-want { background:color-mix(in srgb,var(--state-want) 45%,transparent); }
+    .stat-watching { background:color-mix(in srgb,var(--state-watching) 55%,transparent); }
+    .stat-done { background:color-mix(in srgb,var(--state-done) 55%,transparent); }
+    .stat-accent { background:color-mix(in srgb,var(--accent) 28%,transparent); }
+
+    .sidebar { background:var(--card); border-right:1px solid var(--border); transition:background .3s,border .3s,width .25s; }
+    .nav-item { color:var(--muted); transition:.15s; }
+    .nav-item:hover { color:var(--text); background:var(--soft); }
+    .nav-item.active { color:var(--accent); background:var(--soft); font-weight:500; }
+    .avatar { background:var(--accent); color:#fff; }
+    .swatch { width:30px; height:30px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:.15s; }
+    .swatch.active { border-color:var(--text); transform:scale(1.12); }
+    .swatch-sm { width:22px; height:22px; }
+
+    .preset-thumb { cursor:pointer; border:2px solid transparent; border-radius:12px; overflow:hidden; transition:.15s; position:relative; }
+    .preset-thumb:hover { border-color:var(--accent); }
+    .preset-thumb.active { border-color:var(--accent); }
+    .preset-thumb img { width:100%; aspect-ratio:2/3; object-fit:cover; display:block; }
+    .gallery-del { position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.55); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; z-index:2; }
+    .gallery-del:hover { background:rgba(220,80,80,0.85); }
+
+    .poster-canvas-wrap { width:320px; background:var(--bg); color:var(--text); padding:24px; border-radius:20px; }
+    .poster-canvas-wrap.dark-poster { background:#22222b; color:#eee; }
+    .check-item { width:18px; height:18px; accent-color:var(--accent); }
+
+    @media (min-width:769px){
+      #sidebar.collapsed { width:72px; }
+      #sidebar.collapsed .collapse-hide { display:none !important; }
+      #sidebar.collapsed .nav-item { justify-content:center; }
+      #sidebar.collapsed .collapse-btn i { transform:rotate(180deg); }
+      #sidebar.collapsed .mini-row { justify-content:center; }
+      #sidebar.collapsed .mini-info { display:none; }
+    }
+    .collapse-btn { transition: transform .2s; }
+
+    @media (max-width:768px){
+      #sidebar { position:fixed; left:0; top:0; bottom:0; z-index:50; transform:translateX(-100%); width:240px; transition:transform .25s; }
+      #sidebar.open { transform:translateX(0); }
+      #sidebarBackdrop { display:none; }
+      #sidebarBackdrop.open { display:block; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:45; }
+    }
+    /* 手机横屏：自动切换为紧凑侧栏布局，随系统横竖屏切换 */
+    @media (max-width:768px) and (orientation: landscape){
+      html.landscape #sidebar{ position:relative !important; transform:none !important; width:64px; height:auto; }
+      html.landscape #sidebar .collapse-hide{ display:none !important; }
+      html.landscape #sidebar .nav-item{ justify-content:center; padding-left:0; padding-right:0; }
+      html.landscape #sidebar .mini-info{ display:none; }
+      html.landscape #sidebar .mini-row{ justify-content:center; }
+      html.landscape #mobileHeader{ display:none !important; }
+      html.landscape #desktopBar{ display:flex !important; }
+      html.landscape #orientBadge{ display:inline-flex !important; }
+      html.landscape #sidebarBackdrop{ display:none !important; }
+      html.landscape main{ padding:0.5rem 0.75rem; }
+      /* 横屏统计/网格更宽 */
+      html.landscape [id$="StatsWrap"]{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+      html.landscape #showGrid, html.landscape #bookGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+      /* 弹窗横屏紧凑 */
+      html.landscape .modal-wrap > *{ margin-top:1rem; margin-bottom:1rem; }
+    }
+    .scrollbar-thin::-webkit-scrollbar { width:6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    /* 原生 App 可用指示点 */
+    .app-dot{ position:absolute; right:-2px; bottom:-2px; width:8px; height:8px; border-radius:50%; background:#4ade80; border:1.5px solid var(--bg,#fff); box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+    /* 开关组件 */
+    .switch{ position:relative; display:inline-block; width:42px; height:24px; }
+    .switch input{ opacity:0; width:0; height:0; }
+    .slider{ position:absolute; cursor:pointer; inset:0; background:var(--border,#cbd5e1); border-radius:999px; transition:background .2s; }
+    .slider::before{ content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+    .switch input:checked + .slider{ background:var(--accent,#6366f1); }
+    .switch input:checked + .slider::before{ transform:translateX(18px); }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ 登录弹窗 ============ -->
+<div id="loginModal" class="modal-wrap fixed inset-0 z-50 flex items-center justify-center">
+  <div class="card-ins p-7 w-full max-w-sm mx-4">
+    <div class="flex items-center gap-2 mb-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:var(--accent);color:#fff"><i class="fa fa-film"></i></div>
+      <div>
+        <h1 class="text-lg font-medium leading-tight">MyShowLog</h1>
+        <p class="text-xs text-muted-c leading-tight">我的剧集与书架记录本</p>
+      </div>
+    </div>
+    <div class="tab flex gap-4 mb-5">
+      <button id="tabLogin" onclick="switchAuthTab('login')" class="font-medium border-b-2 pb-1" style="border-color:var(--accent)">登录</button>
+      <button id="tabReg" onclick="switchAuthTab('reg')" class="text-muted-c pb-1">注册账号</button>
+    </div>
+    <div id="panelLogin">
+      <div class="mb-3"><label class="text-sm block mb-1">用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="输入用户名"/></div>
+      <div class="mb-4"><label class="text-sm block mb-1">密码</label><input id="loginPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="输入密码"/></div>
+      <button onclick="doLogin()" class="btn-soft w-full py-2.5">登录</button>
+    </div>
+    <div id="panelReg" class="hidden">
+      <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5"/></div>
+      <div class="mb-4"><label class="text-sm block mb-1">设置密码</label><input id="regPwd" type="password" class="input-ins w-full px-4 py-2.5"/></div>
+      <button onclick="doRegister()" class="btn-soft w-full py-2.5">注册</button>
+    </div>
+    <div class="mt-4 text-xs text-muted-c">提示：本地模拟账号；如需云端同步需后端服务</div>
+  </div>
+</div>
+
+<!-- ============ 详情弹窗 ============ -->
+<div id="detailModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-3xl mx-auto my-8 relative">
+    <button onclick="closeDetail()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ============ 添加/编辑条目弹窗（剧集/书籍共用） ============ -->
+<div id="itemModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-lg mx-auto my-8 relative">
+    <button onclick="closeItemModal()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <h3 id="itemModalTitle" class="text-lg font-medium mb-4">添加</h3>
+    <input id="editId" type="hidden"/>
+    <input id="editModule" type="hidden"/>
+    <div class="grid grid-cols-1 gap-4">
+      <div><label class="text-sm block mb-1">标题</label><input id="fldTitle" class="input-ins w-full px-4 py-2.5" placeholder="标题"/></div>
+      <div id="extraFieldsWrap"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="text-sm block mb-1">类型</label><select id="fldType" class="input-ins w-full px-4 py-2.5"></select></div>
+        <div><label class="text-sm block mb-1">状态</label><select id="fldStatus" class="input-ins w-full px-4 py-2.5"></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label id="lblProgress" class="text-sm block mb-1">已看</label><input id="fldProgress" type="number" min="0" class="input-ins w-full px-4 py-2.5" placeholder="0"/></div>
+        <div><label id="lblTotal" class="text-sm block mb-1">总集数</label><input id="fldTotal" type="number" min="0" class="input-ins w-full px-4 py-2.5" placeholder="如 12"/></div>
+      </div>
+      <div><label class="text-sm block mb-1">评分</label><div id="starPicker" class="flex gap-1"></div></div>
+      <div>
+        <label class="text-sm block mb-1">封面图片</label>
+        <div class="flex gap-2 mb-2">
+          <button id="srcLocalBtn" onclick="switchImgSrc('local')" class="btn-soft px-3 py-1.5 text-sm">本地图库</button>
+          <button id="srcLibBtn" onclick="switchImgSrc('lib')" class="btn-outline px-3 py-1.5 text-sm">图库链接</button>
+        </div>
+        <div id="srcLocalPanel">
+          <div class="flex items-center gap-2 mb-2">
+            <input id="fldImgFile" type="file" accept="image/*" class="hidden" onchange="onFilePick(event)"/>
+            <button onclick="document.getElementById('fldImgFile').click()" class="btn-outline px-3 py-1.5 text-sm"><i class="fa fa-upload mr-1"></i>上传新图</button>
+            <span class="text-xs text-muted-c" id="fileHint">未选择</span>
+          </div>
+          <div id="presetGrid" class="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto scrollbar-thin p-1"></div>
+          <p class="text-xs text-muted-c mt-2">上传新图自动裁剪压缩并存入本图库；点击下方图片选用；右上角删除。</p>
+        </div>
+        <div id="srcLibPanel" class="hidden gap-2 items-center">
+          <input id="fldImg" class="input-ins w-full px-4 py-2.5" placeholder="https://..."/>
+          <button onclick="previewImg()" class="btn-outline px-3 py-2 text-sm whitespace-nowrap">预览</button>
+        </div>
+        <img id="imgPrev" class="image-preview w-24 h-32 mt-2 hidden soft-bg" alt="预览"/>
+      </div>
+      <div>
+        <label class="text-sm block mb-1">标签（回车添加）</label>
+        <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 神作"/></div>
+        <div id="tagList" class="flex flex-wrap gap-2 mt-2"></div>
+      </div>
+      <div><label class="text-sm block mb-1">笔记</label><textarea id="fldNote" rows="3" class="input-ins w-full px-4 py-2.5" placeholder="记下你的感受..."></textarea></div>
+    </div>
+    <div class="flex justify-end gap-2 mt-6">
+      <button onclick="closeItemModal()" class="btn-outline px-5 py-2">取消</button>
+      <button onclick="saveItem()" class="btn-soft px-5 py-2">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 裁剪弹窗 ============ -->
+<div id="cropModal" class="modal-wrap fixed inset-0 z-[60] hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-md mx-auto my-8">
+    <h3 class="text-lg font-medium mb-1">裁剪封面</h3>
+    <p class="text-xs text-muted-c mb-4">拖动调整位置和大小，按 2:3 比例自动压缩降分辨率</p>
+    <div class="max-h-80 overflow-hidden rounded-xl" style="background:var(--soft)"><img id="cropImage" class="max-w-full block" alt="待裁剪"/></div>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeCrop()" class="btn-outline px-5 py-2">取消</button>
+      <button onclick="confirmCrop()" class="btn-soft px-5 py-2">确认裁剪</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 海报导出弹窗 ============ -->
+<div id="posterModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-sm mx-auto my-8 relative">
+    <button onclick="closePoster()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <h3 class="text-lg font-medium mb-4">生成海报</h3>
+    <div class="flex justify-center"><div id="posterCanvas" class="poster-canvas-wrap"></div></div>
+    <div class="flex flex-col gap-2 mt-4">
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="optDarkPoster" class="check-item" onchange="renderPoster()"> 暗色海报</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="optShowNote" class="check-item" onchange="renderPoster()" checked> 包含笔记</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="optShowTags" class="check-item" onchange="renderPoster()" checked> 包含标签</label>
+    </div>
+    <button onclick="downloadPoster()" class="btn-soft w-full py-2.5 mt-4">下载海报 PNG</button>
+  </div>
+</div>
+
+<!-- ============ 记录本弹窗（外部观看/阅读记录） ============ -->
+<div id="recordsModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-2xl mx-auto my-8 relative">
+    <button onclick="closeRecordsModal()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <h3 class="text-lg font-medium mb-1">记录本</h3>
+    <p class="text-xs text-muted-c mb-4">登记你在红果、抖音、B站、番茄小说等 App 的观看/阅读进度。浏览器无法自动读取这些 App 数据，需手动登记或批量导入；可一键转为想看/想读入库。</p>
+    <div class="card-ins p-4 mb-4" style="background:var(--soft)">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input id="recTitle" class="input-ins px-4 py-2.5" placeholder="标题"/>
+        <input id="recSoftware" list="appList" class="input-ins px-4 py-2.5" placeholder="软件/App 名称（可自定义）"/>
+        <datalist id="appList"></datalist>
+        <select id="recKind" class="input-ins px-4 py-2.5">
+          <option value="show">剧集</option>
+          <option value="book">书籍</option>
+        </select>
+        <input id="recEpisode" class="input-ins px-4 py-2.5" placeholder="进度（如 第8集 / 看完）"/>
+        <input id="recDate" type="date" class="input-ins px-4 py-2.5"/>
+        <textarea id="recNote" rows="2" class="input-ins px-4 py-2.5 sm:col-span-2" placeholder="备注（可选）"></textarea>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button onclick="addRecord()" class="btn-soft px-4 py-2 text-sm">添加</button>
+        <button onclick="importRecordsClipboard()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-paste mr-1"></i>批量导入</button>
+      </div>
+      <p class="text-xs text-muted-c mt-2">批量格式：每行一条，用 | 分隔，如「我的阿勒泰 | 爱奇艺 | 第3集 | 剧」</p>
+    </div>
+    <div class="flex gap-2 mb-4 flex-wrap" id="platformFilter"></div>
+    <div id="recordsList" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin"></div>
+  </div>
+</div>
+
+<!-- ============ 分享弹窗 ============ -->
+<div id="shareModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="card-ins p-6 w-full max-w-lg mx-auto my-8 relative">
+    <button onclick="closeShareModal()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
+    <h3 class="text-lg font-medium mb-1">分享</h3>
+    <p class="text-xs text-muted-c mb-4">复制本网页地址分享给好友，或生成包含你的剧集/书架清单的分享链接（不含图片）。</p>
+
+    <div class="card-ins p-4 mb-4" style="background:var(--soft)">
+      <p class="text-xs text-muted-c mb-2">网页地址</p>
+      <div class="flex items-center gap-2">
+        <input id="shareUrlBox" class="input-ins flex-1 px-3 py-2 text-sm" readonly/>
+        <button onclick="copyShareUrl('page')" class="btn-soft px-3 py-2 text-sm shrink-0"><i class="fa fa-copy mr-1"></i>复制</button>
+      </div>
+      <p class="text-xs text-muted-c mt-2">这是当前网页的访问地址。</p>
+    </div>
+
+    <div class="card-ins p-4 mb-4" style="background:var(--soft)">
+      <p class="text-xs text-muted-c mb-2">清单分享链接（含剧集/书架数据，不含图片）</p>
+      <div class="flex items-center gap-2 mb-2">
+        <input id="shareDataUrlBox" class="input-ins flex-1 px-3 py-2 text-xs" readonly placeholder="点击下方按钮生成地址..."/>
+        <button onclick="copyShareUrl('data')" class="btn-soft px-3 py-2 text-sm shrink-0"><i class="fa fa-copy mr-1"></i>复制</button>
+      </div>
+      <button onclick="generateShareDataUrl()" class="btn-outline w-full py-2 text-sm"><i class="fa fa-link mr-1"></i>生成分享地址</button>
+      <p class="text-xs text-muted-c mt-2" id="shareDataInfo"></p>
+      <button onclick="copyShareJson()" class="btn-outline w-full py-2 text-sm mt-2"><i class="fa fa-clipboard mr-1"></i>复制 JSON 数据（可导入小程序）</button>
+    </div>
+
+    <button onclick="nativeShare()" class="btn-soft w-full py-2.5 text-sm flex items-center justify-center gap-2"><i class="fa fa-share-square-o"></i>调用系统分享</button>
+
+    <div class="card-ins p-4 mt-4" style="background:var(--soft)">
+      <p class="text-xs text-muted-c mb-2">离线网页（单文件，可发送好友或托管到任意静态空间）</p>
+      <button onclick="downloadOfflinePage()" class="btn-outline w-full py-2 text-sm flex items-center justify-center gap-2"><i class="fa fa-download"></i>下载离线网页 MyShowLog.html</button>
+      <p class="text-xs text-muted-c mt-2">下载后可当作独立应用打开；托管到 GitHub Pages / Netlify / Vercel 后即可被安装为应用，分享链接（#share=）在任何地址下都能用。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ App Shell ============ -->
+<div id="appShell" class="hidden flex min-h-screen">
+  <aside id="sidebar" class="sidebar w-60 shrink-0 flex flex-col p-4">
+    <div class="flex items-center justify-between mb-6 px-1">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:var(--accent);color:#fff"><i class="fa fa-film"></i></div>
+        <div class="collapse-hide min-w-0">
+          <h1 class="text-base font-medium leading-tight">MyShowLog</h1>
+          <p class="text-xs text-muted-c leading-tight">剧集与书架</p>
+        </div>
+      </div>
+      <button onclick="toggleSidebarCollapse()" class="collapse-btn hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-muted-c hover:bg-[var(--soft)]" title="收起/展开"><i class="fa fa-chevron-left"></i></button>
+    </div>
+
+    <nav class="flex flex-col gap-1">
+      <button data-view="home" onclick="switchView('home')" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-th w-4 text-center"></i><span class="collapse-hide">剧集</span></button>
+      <button data-view="books" onclick="switchView('books')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-book w-4 text-center"></i><span class="collapse-hide">书架</span></button>
+      <button data-view="profile" onclick="switchView('profile')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-user w-4 text-center"></i><span class="collapse-hide">我的</span></button>
+      <button data-view="settings" onclick="switchView('settings')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"><i class="fa fa-cog w-4 text-center"></i><span class="collapse-hide">设置</span></button>
+    </nav>
+
+    <div class="mt-5 collapse-hide">
+      <p class="text-xs text-muted-c px-3 mb-2">应用快捷</p>
+      <div id="appShortcuts" class="grid grid-cols-2 gap-1.5 px-2 max-h-44 overflow-y-auto scrollbar-thin"></div>
+      <div class="flex gap-2 mt-2 px-2">
+        <button onclick="addCustomApp()" class="btn-outline flex-1 py-1.5 text-xs"><i class="fa fa-plus mr-1"></i>添加应用</button>
+        <button onclick="openRecordsModal()" class="btn-outline flex-1 py-1.5 text-xs"><i class="fa fa-bookmark-o mr-1"></i>记录本</button>
+      </div>
+    </div>
+
+    <div class="mt-5 collapse-hide">
+      <p class="text-xs text-muted-c px-3 mb-2">主题色调</p>
+      <div class="flex gap-2 flex-wrap px-3">
+        <div class="swatch swatch-sm" data-theme="cream" style="background:#D4B5AD" onclick="setTheme('cream')" title="奶油"></div>
+        <div class="swatch swatch-sm" data-theme="ocean" style="background:#6BA8C0" onclick="setTheme('ocean')" title="海洋"></div>
+        <div class="swatch swatch-sm" data-theme="forest" style="background:#8FB576" onclick="setTheme('forest')" title="森林"></div>
+        <div class="swatch swatch-sm" data-theme="sunset" style="background:#E89570" onclick="setTheme('sunset')" title="日落"></div>
+        <div class="swatch swatch-sm" data-theme="lavender" style="background:#B09BC8" onclick="setTheme('lavender')" title="薰衣草"></div>
+      </div>
+      <button id="modeBtn" onclick="toggleMode()" class="btn-outline w-full mt-3 py-2 text-sm flex items-center justify-center gap-2"><i class="fa fa-moon-o"></i><span id="modeLabel">深色</span></button>
+    </div>
+
+    <div class="mt-auto pt-4">
+      <div class="mini-row flex items-center gap-2 px-2 py-2 rounded-xl soft-bg-50">
+        <div id="miniAvatar" class="avatar w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium shrink-0">U</div>
+        <div class="mini-info flex-1 min-w-0">
+          <div id="miniName" class="text-sm font-medium truncate">用户</div>
+          <div id="miniUser" class="text-xs text-muted-c truncate">@user</div>
+        </div>
+        <button onclick="logout()" class="mini-info text-muted-c hover:opacity-70 px-1 shrink-0" title="退出登录"><i class="fa fa-sign-out"></i></button>
+      </div>
+    </div>
+  </aside>
+  <div id="sidebarBackdrop" onclick="toggleSidebarMobile()"></div>
+
+  <div class="flex-1 min-w-0 flex flex-col">
+    <header id="mobileHeader" class="md:hidden sticky top-0 z-30 backdrop-blur px-4 py-3 flex items-center justify-between border-b" style="background:color-mix(in srgb,var(--bg) 85%,transparent);border-color:var(--border)">
+      <button onclick="toggleSidebarMobile()" class="btn-outline w-9 h-9 flex items-center justify-center"><i class="fa fa-bars"></i></button>
+      <span class="font-medium" id="mobileTitle">剧集</span>
+      <div class="flex items-center gap-2">
+        <button onclick="openShareModal()" class="btn-outline w-9 h-9 flex items-center justify-center" title="分享"><i class="fa fa-share-alt"></i></button>
+        <button onclick="openItemModal('show')" id="mobileAddBtn" class="btn-soft w-9 h-9 flex items-center justify-center"><i class="fa fa-plus"></i></button>
+      </div>
+    </header>
+    <!-- 桌面顶栏 / 横屏顶栏 -->
+    <div id="desktopBar" class="hidden md:flex items-center justify-between px-1 py-2 mb-1">
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-lg" id="desktopTitle">剧集</span>
+        <span id="orientBadge" class="text-xs px-2 py-0.5 rounded-full hidden items-center gap-1" style="background:var(--soft);color:var(--muted)"><i class="fa fa-mobile"></i><span id="orientText">竖屏</span></span>
+      </div>
+      <button onclick="openShareModal()" class="btn-outline px-4 py-2 text-sm flex items-center gap-2"><i class="fa fa-share-alt"></i>分享</button>
+    </div>
+
+    <main class="flex-1 p-4 md:p-6 max-w-6xl w-full mx-auto">
+
+      <!-- ===== 剧集视图 ===== -->
+      <section data-view-panel="home">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-medium">剧集</h2>
+          <button onclick="openItemModal('show')" class="btn-soft px-4 py-2 text-sm flex items-center gap-1"><i class="fa fa-plus"></i><span class="hidden sm:inline">添加</span></button>
+        </div>
+        <div class="card-ins p-5 mb-6">
+          <div id="showStatsWrap" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+          <div class="h-48"><canvas id="chart_show"></canvas></div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+          <div class="flex gap-2 flex-wrap" id="filterTabs_show"></div>
+          <div class="flex-1 relative">
+            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-c"></i>
+            <input id="searchInput_show" class="input-ins w-full pl-9 pr-4 py-2.5" placeholder="搜索剧集或标签..."/>
+          </div>
+          <select id="sortSelect_show" class="input-ins px-3 py-2.5 text-sm">
+            <option value="recent">最近添加</option><option value="rating">评分最高</option>
+            <option value="title">标题</option><option value="progress">进度最多</option>
+          </select>
+        </div>
+        <div id="showTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
+        <div id="showGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        <div id="emptyState_show" class="hidden text-center py-16 text-muted-c">
+          <i class="fa fa-film text-5xl mb-3 opacity-40"></i>
+          <p>还没有记录任何剧集</p>
+          <button onclick="openItemModal('show')" class="btn-soft mt-4 px-5 py-2 text-sm">添加第一部</button>
+        </div>
+      </section>
+
+      <!-- ===== 书架视图 ===== -->
+      <section data-view-panel="books" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-medium">书架</h2>
+          <button onclick="openItemModal('book')" class="btn-soft px-4 py-2 text-sm flex items-center gap-1"><i class="fa fa-plus"></i><span class="hidden sm:inline">添加</span></button>
+        </div>
+        <div class="card-ins p-5 mb-6">
+          <div id="bookStatsWrap" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+          <div class="h-48"><canvas id="chart_book"></canvas></div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+          <div class="flex gap-2 flex-wrap" id="filterTabs_book"></div>
+          <div class="flex-1 relative">
+            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted-c"></i>
+            <input id="searchInput_book" class="input-ins w-full pl-9 pr-4 py-2.5" placeholder="搜索书名、作者或标签..."/>
+          </div>
+          <select id="sortSelect_book" class="input-ins px-3 py-2.5 text-sm">
+            <option value="recent">最近添加</option><option value="rating">评分最高</option>
+            <option value="title">标题</option><option value="progress">进度最多</option>
+          </select>
+        </div>
+        <div id="bookTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
+        <div id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        <div id="emptyState_book" class="hidden text-center py-16 text-muted-c">
+          <i class="fa fa-book text-5xl mb-3 opacity-40"></i>
+          <p>书架还是空的</p>
+          <button onclick="openItemModal('book')" class="btn-soft mt-4 px-5 py-2 text-sm">添加第一本</button>
+        </div>
+      </section>
+
+      <!-- ===== 个人主页 ===== -->
+      <section data-view-panel="profile" class="hidden">
+        <h2 class="text-xl font-medium mb-4">个人主页</h2>
+        <div class="card-ins p-6 mb-6 flex flex-col sm:flex-row items-center gap-5">
+          <div id="profileAvatar" class="avatar w-20 h-20 rounded-full flex items-center justify-center text-3xl font-medium">U</div>
+          <div class="flex-1 w-full">
+            <div class="flex items-center gap-2">
+              <input id="profileName" class="input-ins flex-1 px-3 py-2 text-lg font-medium"/>
+              <button onclick="saveProfileName()" class="btn-soft px-4 py-2 text-sm">保存</button>
+            </div>
+            <p class="text-xs text-muted-c mt-2">登录账号：<span id="profileUser">@user</span></p>
+            <p class="text-xs text-muted-c">加入时间：<span id="profileSince">-</span></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatShows">0</div><div class="text-xs text-muted-c">剧集数</div></div>
+          <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatBooks">0</div><div class="text-xs text-muted-c">书籍数</div></div>
+          <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatAvg">0.0</div><div class="text-xs text-muted-c">平均评分</div></div>
+          <div class="card-ins p-4 text-center"><div class="text-2xl font-medium" id="pStatRecords">0</div><div class="text-xs text-muted-c">记录条数</div></div>
+        </div>
+        <h3 class="font-medium mb-3">最近添加</h3>
+        <div id="recentList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"></div>
+      </section>
+
+      <!-- ===== 设置 ===== -->
+      <section data-view-panel="settings" class="hidden">
+        <h2 class="text-xl font-medium mb-4">设置</h2>
+
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-3">主题色调</h3>
+          <div class="flex flex-wrap gap-4">
+            <label class="flex flex-col items-center gap-1 cursor-pointer"><div class="swatch" data-theme="cream" style="background:#D4B5AD" onclick="setTheme('cream')"></div><span class="text-xs text-muted-c">奶油</span></label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer"><div class="swatch" data-theme="ocean" style="background:#6BA8C0" onclick="setTheme('ocean')"></div><span class="text-xs text-muted-c">海洋</span></label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer"><div class="swatch" data-theme="forest" style="background:#8FB576" onclick="setTheme('forest')"></div><span class="text-xs text-muted-c">森林</span></label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer"><div class="swatch" data-theme="sunset" style="background:#E89570" onclick="setTheme('sunset')"></div><span class="text-xs text-muted-c">日落</span></label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer"><div class="swatch" data-theme="lavender" style="background:#B09BC8" onclick="setTheme('lavender')"></div><span class="text-xs text-muted-c">薰衣草</span></label>
+          </div>
+          <div class="mt-4 flex items-center gap-3">
+            <span class="text-sm">显示模式：</span>
+            <button id="modeBtn2" onclick="toggleMode()" class="btn-outline px-4 py-2 text-sm flex items-center gap-2"><i class="fa fa-moon-o"></i><span id="modeLabel2">深色</span></button>
+          </div>
+        </div>
+
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">本地图库授权</h3>
+          <p class="text-xs text-muted-c mb-4">点击下方按钮授权访问本机图片并导入本地图库（用于剧集/书籍封面）。Chrome/Edge 会弹出系统选择器并请求权限；其他浏览器回退到普通文件选择。</p>
+          <input id="authGalleryInput" type="file" accept="image/*" multiple class="hidden" onchange="onAuthGalleryUpload(event)"/>
+          <button onclick="authorizeGallery()" class="btn-soft px-4 py-2 text-sm"><i class="fa fa-picture-o mr-1"></i>授权并选择本机图片</button>
+          <p class="text-xs text-muted-c mt-2">导入的图片会自动降分辨率压缩（约 420×630）存入本机 IndexedDB。</p>
+        </div>
+
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-3">应用管理</h3>
+          <div class="flex items-center justify-between mb-3 p-3 rounded-xl" style="background:var(--soft)">
+            <div class="min-w-0 pr-2">
+              <div class="text-sm font-medium">优先打开原生 App</div>
+              <div class="text-xs text-muted-c" id="nativeHint">已开启：优先唤醒本机 App，未安装时自动回退网页</div>
+            </div>
+            <label class="switch shrink-0">
+              <input type="checkbox" id="nativeFirstChk" onchange="toggleNativeFirst()">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div id="appManageList" class="space-y-2 mb-3"></div>
+          <button onclick="addCustomApp()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-plus mr-1"></i>添加自定义应用</button>
+        </div>
+
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-3">数据备份</h3>
+          <p class="text-xs text-muted-c mb-4">导出当前账号所有剧集、书籍、记录、自定义应用到 JSON 文件，可换设备导入恢复。</p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="exportData()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-download mr-1"></i>导出数据</button>
+            <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importData(event)"/>
+            <button onclick="document.getElementById('importFile').click()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-upload mr-1"></i>导入数据</button>
+            <button onclick="clearAllData()" class="btn-outline px-4 py-2 text-sm" style="color:#e57373"><i class="fa fa-trash mr-1"></i>清空数据</button>
+          </div>
+        </div>
+
+        <div class="card-ins p-5">
+          <h3 class="font-medium mb-2">关于</h3>
+          <p class="text-sm text-muted-c">MyShowLog · 纯前端单页应用，剧集与书架两个独立模块，数据保存在浏览器 localStorage 与 IndexedDB，按账号隔离。</p>
+        </div>
+      </section>
+
+    </main>
+    <footer class="text-center text-xs text-muted-c py-6">MyShowLog · 本地存储 · 剧集 / 书架 / 记录本</footer>
+  </div>
+</div>
+
+<script>
+  // ============ 常量 ============
+  const STORAGE_USERS='msl_users', STORAGE_SESSION='msl_session',
+        STORAGE_THEME='msl_theme', STORAGE_MODE='msl_mode',
+        STORAGE_PROFILE='msl_profile_', STORAGE_APPS='msl_apps_';
+
+  // 模块配置：剧集与书架共享逻辑
+  const MODULES = {
+    show: { key:'show', label:'剧集', labelSingle:'剧集', viewName:'home',
+      storageKey:u=>'msl_shows_'+u,
+      types:{anime:'番剧',movie:'电影',drama:'剧集',short:'短剧',doc:'纪录片'},
+      statuses:{want:['想看','badge-want'],watching:['在看','badge-watching'],done:['看过','badge-done']},
+      defaultType:'anime', defaultStatus:'want',
+      pField:'watched', tField:'total', pLabel:'已看', tLabel:'总集数', unit:'集',
+      chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#D4B5AD'],
+      extraFields:[], stateKey:'shows' },
+    book: { key:'book', label:'书架', labelSingle:'书籍', viewName:'books',
+      storageKey:u=>'msl_books_'+u,
+      types:{novel:'小说',comic:'漫画',essay:'散文',webnovel:'网文',other:'其他'},
+      statuses:{want:['想读','badge-want'],reading:['在读','badge-watching'],done:['读过','badge-done']},
+      defaultType:'novel', defaultStatus:'want',
+      pField:'chaptersRead', tField:'totalChapters', pLabel:'已读', tLabel:'总章节', unit:'章',
+      chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#c8b8dd'],
+      extraFields:[{key:'author',label:'作者',placeholder:'作者（可选）'}], stateKey:'books' }
+  };
+
+  // 预置 App 快捷
+  const PRESET_APPS=[
+    {name:'抖音', url:'https://www.douyin.com', scheme:'snssdk1128://'},
+    {name:'B站', url:'https://www.bilibili.com', scheme:'bilibili://'},
+    {name:'红果短剧', url:'https://www.hongguo.com', scheme:''},
+    {name:'番茄小说', url:'https://fanqienovel.com', scheme:'fanqienovel://'},
+    {name:'七猫小说', url:'https://www.qimao.com', scheme:'qimao://'},
+    {name:'书旗小说', url:'https://www.shuqi.com', scheme:'sqnovel://'},
+    {name:'知乎', url:'https://www.zhihu.com', scheme:'zhihu://'}
+  ];
+
+  // ============ 状态 ============
+  const data={shows:[],books:[]};
+  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null},
+             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null} };
+  let currentUser=null, activeView='home', profile={}, records=[], currentPlatform='all',
+      customApps=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
+      posterTargetKey=null, posterTargetId=null;
+
+  // ============ 工具 ============
+  const $ = id => document.getElementById(id);
+  const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const userAppsKey = () => STORAGE_APPS+currentUser;
+  const userRecordsKey = () => 'msl_records_'+currentUser;
+  const userProfileKey = () => STORAGE_PROFILE+currentUser;
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  const itemsOf = m => data[m.stateKey];
+
+  // ============ 本地图库（IndexedDB） ============
+  function openGalleryDB(){
+    return new Promise((resolve,reject)=>{
+      const req=indexedDB.open('msl_gallery',1);
+      req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('images')) db.createObjectStore('images',{keyPath:'id'}); };
+      req.onsuccess=e=>resolve(e.target.result);
+      req.onerror=e=>reject(e.target.error);
+    });
+  }
+  async function galleryAdd(user, dataUrl){
+    const db=await openGalleryDB();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction('images','readwrite');
+      tx.objectStore('images').add({ id:uid(), user, data:dataUrl, createdAt:Date.now() });
+      tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error);
+    });
+  }
+  async function galleryList(user){
+    const db=await openGalleryDB();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction('images','readonly');
+      const req=tx.objectStore('images').getAll();
+      req.onsuccess=()=>resolve(req.result.filter(r=>r.user===user));
+      req.onerror=()=>reject(req.error);
+    });
+  }
+  async function galleryDelete(id){
+    const db=await openGalleryDB();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction('images','readwrite');
+      tx.objectStore('images').delete(id);
+      tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error);
+    });
+  }
+  // 降分辨率压缩（用于图库导入）
+  function compressForGallery(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          const maxW=420, maxH=630;
+          const scale=Math.min(1, maxW/img.width, maxH/img.height);
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.round(img.width*scale); canvas.height=Math.round(img.height*scale);
+          canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+          resolve(canvas.toDataURL('image/jpeg',0.68));
+        };
+        img.onerror=reject; img.src=ev.target.result;
+      };
+      reader.onerror=reject; reader.readAsDataURL(file);
+    });
+  }
+  async function buildGallery(){
+    const grid=$('presetGrid');
+    if(!currentUser) return;
+    grid.innerHTML='<p class="col-span-3 text-xs text-muted-c text-center py-4">加载中...</p>';
+    try{
+      const items=await galleryList(currentUser);
+      if(!items.length){ grid.innerHTML='<p class="col-span-3 text-xs text-muted-c text-center py-6">图库为空<br/>点击「上传新图」或设置中授权导入</p>'; return; }
+      grid.innerHTML=items.map(it=>`
+        <div class="preset-thumb" data-i="${it.id}" onclick="pickGallery('${it.id}')" title="点击选用">
+          <img src="${it.data}" alt="">
+          <button class="gallery-del" onclick="event.stopPropagation(); deleteGalleryItem('${it.id}')" title="删除"><i class="fa fa-times"></i></button>
+        </div>`).join('');
+    }catch(e){
+      grid.innerHTML='<p class="col-span-3 text-xs text-red-400 text-center py-4">图库加载失败</p>';
+    }
+  }
+  async function onGalleryUpload(e){
+    const files=[...e.target.files]; e.target.value='';
+    let n=0;
+    for(const f of files){
+      if(!f.type.startsWith('image/')) continue;
+      try{ const d=await compressForGallery(f); await galleryAdd(currentUser,d); n++; }catch(err){ console.error(err); }
+    }
+    await buildGallery();
+    if(n) alert('已导入 '+n+' 张到本图库');
+  }
+  async function pickGallery(id){
+    try{
+      const items=await galleryList(currentUser);
+      const it=items.find(x=>x.id===id); if(!it) return;
+      document.querySelectorAll('.preset-thumb').forEach(t=>t.classList.toggle('active', t.dataset.i===id));
+      $('fldImg').value=it.data; $('imgPrev').src=it.data; $('imgPrev').classList.remove('hidden');
+      $('fileHint').textContent='使用本图库';
+    }catch(e){ alert('选用失败'); }
+  }
+  async function deleteGalleryItem(id){
+    if(!confirm('从图库删除该图片？')) return;
+    await galleryDelete(id); await buildGallery();
+  }
+
+  // ============ 认证 ============
+  function switchAuthTab(tab){
+    const login = tab==='login';
+    $('panelLogin').classList.toggle('hidden', !login);
+    $('panelReg').classList.toggle('hidden', login);
+    $('tabLogin').classList.toggle('font-medium', login);
+    $('tabReg').classList.toggle('font-medium', !login);
+    if(login){ $('tabLogin').style.borderColor='var(--accent)'; $('tabReg').style.borderColor='transparent'; $('tabLogin').classList.remove('text-muted-c'); $('tabReg').classList.add('text-muted-c'); }
+    else { $('tabReg').style.borderColor='var(--accent)'; $('tabLogin').style.borderColor='transparent'; $('tabReg').classList.remove('text-muted-c'); $('tabLogin').classList.add('text-muted-c'); }
+  }
+  function getUsers(){ try{ return JSON.parse(localStorage.getItem(STORAGE_USERS)||'{}'); }catch(e){ return {}; } }
+  function setUsers(u){ localStorage.setItem(STORAGE_USERS, JSON.stringify(u)); }
+  function doRegister(){
+    const u=$('regUser').value.trim(), p=$('regPwd').value;
+    if(!u||!p){ alert('请填写用户名和密码'); return; }
+    const users=getUsers();
+    if(users[u]){ alert('用户名已存在'); return; }
+    users[u]=p; setUsers(users);
+    alert('注册成功，请登录');
+    switchAuthTab('login'); $('loginUser').value=u;
+  }
+  function doLogin(){
+    const u=$('loginUser').value.trim(), p=$('loginPwd').value;
+    if(!u||!p){ alert('请填写用户名和密码'); return; }
+    const users=getUsers();
+    if(!users[u] || users[u]!==p){ alert('用户名或密码错误'); return; }
+    currentUser=u; localStorage.setItem(STORAGE_SESSION, u);
+    enterApp();
+  }
+  function logout(){
+    if(!confirm('确定退出登录？')) return;
+    localStorage.removeItem(STORAGE_SESSION);
+    currentUser=null; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[];
+    $('appShell').classList.add('hidden');
+    $('loginModal').classList.remove('hidden');
+    $('loginUser').value=''; $('loginPwd').value='';
+  }
+  function enterApp(){
+    $('loginModal').classList.add('hidden');
+    $('appShell').classList.remove('hidden');
+    Object.values(MODULES).forEach(m=>loadItems(m));
+    loadProfile(); loadRecords(); loadApps();
+    renderMiniProfile();
+    switchView('home');
+    // 登录后处理待导入的分享链接
+    const pending = sessionStorage.getItem('msl_pending_share');
+    if(pending){
+      sessionStorage.removeItem('msl_pending_share');
+      setTimeout(()=>importSharedData(pending), 500);
+    }
+  }
+
+  // ============ 数据加载 ============
+  function loadItems(m){ try{ data[m.stateKey]=JSON.parse(localStorage.getItem(m.storageKey(currentUser))||'[]'); }catch(e){ data[m.stateKey]=[]; } }
+  function saveItems(m){ localStorage.setItem(m.storageKey(currentUser), JSON.stringify(itemsOf(m))); refreshModule(m); }
+  function refreshModule(m){ if(activeView===m.viewName){ renderFilterTabs(m); renderStats(m); renderTagFilters(m); renderGrid(m); } }
+  function loadProfile(){ try{ profile=JSON.parse(localStorage.getItem(userProfileKey())||'{}'); }catch(e){ profile={}; } if(!profile.name) profile.name=currentUser; }
+  function saveProfile(){ localStorage.setItem(userProfileKey(), JSON.stringify(profile)); }
+  function loadRecords(){ try{ records=JSON.parse(localStorage.getItem(userRecordsKey())||'[]'); }catch(e){ records=[]; } }
+  function saveRecords(){ localStorage.setItem(userRecordsKey(), JSON.stringify(records)); }
+  function loadApps(){ try{ customApps=JSON.parse(localStorage.getItem(userAppsKey())||'[]'); }catch(e){ customApps=[]; } }
+  function saveApps(){ localStorage.setItem(userAppsKey(), JSON.stringify(customApps)); }
+
+  // ============ 主题 ============
+  function applyTheme(){
+    const theme=localStorage.getItem(STORAGE_THEME)||'cream';
+    const mode=localStorage.getItem(STORAGE_MODE)||'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-mode', mode);
+    document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active', s.dataset.theme===theme));
+    const dark = mode==='dark';
+    const setIcon = (bid,lid) => { const i=document.querySelector('#'+bid+' i'); if(i) i.className = dark?'fa fa-sun-o':'fa fa-moon-o'; const l=$(lid); if(l) l.textContent = dark?'浅色':'深色'; };
+    setIcon('modeBtn','modeLabel'); setIcon('modeBtn2','modeLabel2');
+    Object.values(MODULES).forEach(m=>{ if(ui[m.key].chart) renderChart(m); });
+  }
+  function setTheme(t){ localStorage.setItem(STORAGE_THEME, t); applyTheme(); }
+  function toggleMode(){ const cur=localStorage.getItem(STORAGE_MODE)||'light'; localStorage.setItem(STORAGE_MODE, cur==='dark'?'light':'dark'); applyTheme(); }
+
+  // ============ 视图切换 ============
+  function switchView(v){
+    activeView=v;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===v));
+    document.querySelectorAll('[data-view-panel]').forEach(p=>p.classList.toggle('hidden', p.dataset.viewPanel!==v));
+    const titles={home:'剧集',books:'书架',profile:'我的',settings:'设置'};
+    const mt=$('mobileTitle'); if(mt) mt.textContent=titles[v]||'';
+    const dt=$('desktopTitle'); if(dt) dt.textContent=titles[v]||'';
+    const madd=$('mobileAddBtn'); if(madd){ madd.onclick = (v==='home')? ()=>openItemModal('show') : (v==='books')? ()=>openItemModal('book') : ()=>openItemModal('show'); madd.style.display = (v==='home'||v==='books')?'flex':'none'; }
+    if(v==='home') renderAll(MODULES.show);
+    if(v==='books') renderAll(MODULES.book);
+    if(v==='profile') renderProfile();
+    if(v==='settings'){ syncNativeToggle(); renderAppManage(); }
+    $('sidebar').classList.remove('open'); $('sidebarBackdrop').classList.remove('open');
+  }
+  function toggleSidebarMobile(){ $('sidebar').classList.toggle('open'); $('sidebarBackdrop').classList.toggle('open'); }
+  function toggleSidebarCollapse(){ $('sidebar').classList.toggle('collapsed'); localStorage.setItem('msl_sidebar_collapsed', $('sidebar').classList.contains('collapsed')?'1':'0'); }
+  function applySidebarState(){ if(localStorage.getItem('msl_sidebar_collapsed')==='1') $('sidebar').classList.add('collapsed'); }
+
+  // ============ 横竖屏自适应（随系统切换） ============
+  function applyOrientation(){
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const isSmall = window.innerWidth <= 768;
+    const html = document.documentElement;
+    // 仅在小屏（手机）横屏时启用紧凑侧栏布局；桌面/平板横屏沿用原响应式
+    const on = isLandscape && isSmall;
+    html.classList.toggle('landscape', on);
+    if(on){
+      // 进入横屏紧凑态：关闭抽屉，侧栏常驻
+      $('sidebar').classList.remove('open');
+      $('sidebarBackdrop').classList.remove('open');
+    }
+    const badge=$('orientBadge'), txt=$('orientText');
+    if(badge && txt){
+      // 桌面/平板也显示当前朝向
+      const showBadge = (window.innerWidth > 768) || on;
+      badge.style.display = showBadge ? 'inline-flex' : 'none';
+      txt.textContent = isLandscape ? '横屏' : '竖屏';
+      const ico = badge.querySelector('i');
+      if(ico) ico.className = isLandscape ? 'fa fa-mobile' : 'fa fa-mobile';
+    }
+  }
+
+  // ============ 条目渲染（剧集/书架通用） ============
+  function typeLabel(m,t){ return m.types[t]||t||'-'; }
+  function statusInfo(m,s){ return m.statuses[s]||m.statuses[Object.keys(m.statuses)[0]]; }
+  function statusBadge(m,s){ const [lbl,cls]=statusInfo(m,s); return `<span class="text-xs px-2 py-0.5 rounded-full ${cls}">${lbl}</span>`; }
+  function progressStr(m,it){ const p=it[m.pField]||0, t=it[m.tField]||0; return t? p+' / '+t+' '+m.unit : p+' '+m.unit; }
+  function starStr(n){ let s=''; for(let i=1;i<=5;i++) s+=`<i class="fa fa-star" style="color:${i<=n?'var(--accent)':'var(--star-empty)'}"></i>`; return s; }
+  function cardHTML(m,it){
+    const fallback=`<div class="w-full aspect-[2/3] rounded-xl soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-3xl"></i></div>`;
+    const fbEsc=fallback.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;');
+    const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-xl" onerror="this.parentNode.innerHTML='${fbEsc}'">`:fallback;
+    let extra='';
+    m.extraFields.forEach(f=>{ if(it[f.key]) extra += (extra?' · ':'') + escapeHtml(it[f.key]); });
+    return `<div class="card-ins card-hover overflow-hidden cursor-pointer" onclick="openDetail('${m.key}','${it.id}')">
+      <div class="p-3"><div class="relative">${img}<div class="absolute top-2 right-2">${statusBadge(m,it.status)}</div></div>
+      <div class="mt-3"><h3 class="font-medium truncate">${escapeHtml(it.title)}</h3>
+      <div class="text-xs text-muted-c mt-0.5">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+escapeHtml(extra):''}</div>
+      <div class="text-xs mt-1">${starStr(it.rating||0)}</div></div></div></div>`;
+  }
+  function filterItems(m){
+    return itemsOf(m).filter(it=>{
+      if(ui[m.key].filter!=='all' && it.status!==ui[m.key].filter) return false;
+      if(ui[m.key].tagFilter && !(it.tags||[]).includes(ui[m.key].tagFilter)) return false;
+      if(ui[m.key].keyword){
+        const k=ui[m.key].keyword.toLowerCase();
+        const inT=(it.title||'').toLowerCase().includes(k);
+        const inTags=(it.tags||[]).some(t=>t.toLowerCase().includes(k));
+        const inExtra=m.extraFields.some(f=>(it[f.key]||'').toLowerCase().includes(k));
+        if(!inT && !inTags && !inExtra) return false;
+      }
+      return true;
+    });
+  }
+  function sortItems(m,list){
+    const arr=[...list], s=ui[m.key].sort;
+    if(s==='recent') arr.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    else if(s==='rating') arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if(s==='title') arr.sort((a,b)=>(a.title||'').localeCompare(b.title||'','zh'));
+    else if(s==='progress') arr.sort((a,b)=>progressPct(m,b)-progressPct(m,a));
+    return arr;
+  }
+  function progressPct(m,it){ const t=it[m.tField], p=it[m.pField]||0; if(!t) return p?33:0; return Math.min(100,Math.round(p/t*100)); }
+  function renderGrid(m){
+    const list=sortItems(m,filterItems(m));
+    const grid=$(m.key+'Grid');
+    const empty=$('emptyState_'+m.key);
+    const total=itemsOf(m).length;
+    empty.classList.toggle('hidden', total>0);
+    if(!list.length){ grid.innerHTML = total? `<div class="col-span-full text-center py-10 text-muted-c">没有匹配的${m.label}</div>` : ''; return; }
+    grid.innerHTML=list.map(it=>cardHTML(m,it)).join('');
+  }
+  function renderFilterTabs(m){
+    const wrap=$('filterTabs_'+m.key); if(!wrap) return;
+    const all=[['all','全部'], ...Object.entries(m.statuses).map(([k,[lbl]])=>[k,lbl])];
+    wrap.innerHTML=all.map(([f,lbl])=>`<button data-m="${m.key}" data-f="${f}" class="filter-btn ${ui[m.key].filter===f?'btn-soft':'btn-outline'} px-4 py-2 text-sm">${lbl}</button>`).join('');
+  }
+  function renderTagFilters(m){
+    const row=$(m.key+'TagFilterRow'); if(!row) return;
+    const tags=[...new Set(itemsOf(m).flatMap(s=>s.tags||[]))];
+    if(!tags.length){ row.innerHTML=''; return; }
+    row.innerHTML=`<span class="tag-chip ${!ui[m.key].tagFilter?'active':''}" onclick="setTagFilter('${m.key}',null)">全部标签</span>`+
+      tags.map(t=>`<span class="tag-chip ${ui[m.key].tagFilter===t?'active':''}" onclick='setTagFilter("${m.key}",${JSON.stringify(t)})'>${escapeHtml(t)}</span>`).join('');
+  }
+  function setTagFilter(key,t){ ui[key].tagFilter=t; renderTagFilters(MODULES[key]); renderGrid(MODULES[key]); }
+  function renderStats(m){
+    const items=itemsOf(m);
+    const wrap=$(m.key+'StatsWrap');
+    const cnt={}; Object.keys(m.statuses).forEach(k=>cnt[k]=0);
+    items.forEach(it=>{ if(cnt[it.status]!==undefined) cnt[it.status]++; });
+    const rated=items.filter(it=>it.rating>0);
+    const avg=rated.length?(rated.reduce((a,b)=>a+(b.rating||0),0)/rated.length).toFixed(1):'0.0';
+    const statCls={want:'stat-want',watching:'stat-watching',reading:'stat-watching',done:'stat-done'};
+    wrap.innerHTML=Object.entries(m.statuses).map(([k,[lbl]])=>{
+      const scls=statCls[k]||'stat-accent';
+      return `<div class="${scls} rounded-2xl p-3 text-center"><div class="text-2xl font-medium">${cnt[k]}</div><div class="text-xs text-muted-c">${lbl}</div></div>`;
+    }).join('') + `<div class="stat-accent rounded-2xl p-3 text-center"><div class="text-2xl font-medium">${avg}</div><div class="text-xs text-muted-c">平均评分</div></div>`;
+    renderChart(m);
+  }
+  function renderChart(m){
+    const cv=document.getElementById('chart_'+m.key); if(!cv) return;
+    const ctx=cv.getContext('2d');
+    const counts={}; Object.keys(m.types).forEach(k=>counts[k]=0);
+    itemsOf(m).forEach(it=>{ if(counts[it.type]!==undefined) counts[it.type]++; });
+    const labels=Object.values(m.types);
+    const d=Object.keys(m.types).map(k=>counts[k]);
+    const dark=document.documentElement.getAttribute('data-mode')==='dark';
+    const txt=dark?'#e8e8ee':'#443B39';
+    const grid=dark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)';
+    if(ui[m.key].chart) ui[m.key].chart.destroy();
+    ui[m.key].chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:d,backgroundColor:m.chartColors,borderRadius:8,maxBarThickness:48}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt,stepSize:1,precision:0},grid:{color:grid}}}}});
+  }
+  function renderAll(m){ renderFilterTabs(m); renderStats(m); renderTagFilters(m); renderGrid(m); }
+
+  // ============ 条目弹窗 ============
+  function buildStarPicker(){
+    const wrap=$('starPicker'); wrap.innerHTML='';
+    for(let i=1;i<=5;i++){
+      const s=document.createElement('i'); s.className='fa fa-star star'; s.dataset.v=i;
+      s.addEventListener('click', ()=>{ starValue=i; refreshStars(); });
+      s.addEventListener('mouseenter', ()=>{ wrap.querySelectorAll('.star').forEach(el=>el.classList.toggle('active', parseInt(el.dataset.v)<=i)); });
+      s.addEventListener('mouseleave', refreshStars);
+      wrap.appendChild(s);
+    }
+  }
+  function refreshStars(){ $('starPicker').querySelectorAll('.star').forEach(el=>el.classList.toggle('active', parseInt(el.dataset.v)<=starValue)); }
+  function renderTagList(){
+    $('tagList').innerHTML = editingTags.length
+      ? editingTags.map((t,i)=>`<span class="tag-item" onclick="removeTag(${i})">${escapeHtml(t)} <i class="fa fa-times ml-1"></i></span>`).join('')
+      : '<span class="text-xs text-muted-c">暂无标签</span>';
+  }
+  function removeTag(i){ editingTags.splice(i,1); renderTagList(); }
+  function switchImgSrc(mode){
+    const localActive=mode==='local', libActive=mode==='lib';
+    $('srcLocalBtn').className='px-3 py-1.5 text-sm '+(localActive?'btn-soft':'btn-outline');
+    $('srcLibBtn').className='px-3 py-1.5 text-sm '+(libActive?'btn-soft':'btn-outline');
+    $('srcLocalPanel').classList.toggle('hidden', !localActive);
+    $('srcLibPanel').classList.toggle('hidden', !libActive);
+    $('srcLibPanel').classList.toggle('flex', libActive);
+  }
+  function previewImg(){
+    const url=$('fldImg').value.trim();
+    const prev=$('imgPrev');
+    if(!url){ prev.classList.add('hidden'); return; }
+    prev.src=url; prev.classList.remove('hidden');
+  }
+  function openItemModal(key, id){
+    const m=MODULES[key];
+    editingModuleKey=key; editingTags=[]; starValue=0;
+    $('editModule').value=key;
+    $('itemModalTitle').textContent = id?'编辑'+m.labelSingle:'添加'+m.labelSingle;
+    $('fldType').innerHTML=Object.entries(m.types).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+    $('fldStatus').innerHTML=Object.entries(m.statuses).map(([k,[l]])=>`<option value="${k}">${l}</option>`).join('');
+    $('lblProgress').textContent=m.pLabel; $('lblTotal').textContent=m.tLabel;
+    $('extraFieldsWrap').innerHTML=m.extraFields.map(f=>`<div><label class="text-sm block mb-1">${f.label}</label><input id="fld_${f.key}" class="input-ins w-full px-4 py-2.5" placeholder="${f.placeholder||''}"/></div>`).join('');
+    buildStarPicker(); buildGallery();
+    $('imgPrev').classList.add('hidden'); $('imgPrev').src=''; $('fldImg').value='';
+    if(id){
+      const it=itemsOf(m).find(x=>x.id===id); if(!it){ return; }
+      $('editId').value=it.id;
+      $('fldTitle').value=it.title||'';
+      m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=it[f.key]||''; });
+      $('fldType').value=it.type||m.defaultType;
+      $('fldStatus').value=it.status||m.defaultStatus;
+      $('fldProgress').value=it[m.pField]||0;
+      $('fldTotal').value=it[m.tField]||'';
+      $('fldImg').value=it.img||'';
+      $('fldNote').value=it.note||'';
+      starValue=it.rating||0; editingTags=[...(it.tags||[])];
+      refreshStars(); renderTagList();
+      if(it.img){ $('imgPrev').src=it.img; $('imgPrev').classList.remove('hidden'); if(it.img.startsWith('data:')){ switchImgSrc('local'); $('fileHint').textContent='已上传图片'; } else { switchImgSrc('lib'); } }
+    }else{
+      $('editId').value='';
+      $('fldTitle').value='';
+      m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=''; });
+      ['fldProgress','fldTotal','fldNote','fldTagInput','fldImgFile'].forEach(i=>{const el=$(i); if(el) el.value='';});
+      $('fldType').value=m.defaultType; $('fldStatus').value=m.defaultStatus;
+      switchImgSrc('local'); $('fileHint').textContent='未选择';
+      refreshStars(); renderTagList();
+    }
+    $('itemModal').classList.remove('hidden');
+  }
+  function closeItemModal(){ $('itemModal').classList.add('hidden'); }
+  function saveItem(){
+    const key=$('editModule').value; const m=MODULES[key];
+    const title=$('fldTitle').value.trim();
+    if(!title){ alert('请填写标题'); return; }
+    const id=$('editId').value;
+    const d={ title, type:$('fldType').value, status:$('fldStatus').value,
+      rating:starValue, img:$('fldImg').value.trim(), tags:[...editingTags], note:$('fldNote').value.trim() };
+    d[m.pField]=parseInt($('fldProgress').value)||0;
+    d[m.tField]=parseInt($('fldTotal').value)||0;
+    m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) d[f.key]=el.value.trim(); });
+    if(id){ Object.assign(itemsOf(m).find(x=>x.id===id), d); }
+    else{ itemsOf(m).unshift({ id:uid(), createdAt:Date.now(), ...d }); }
+    saveItems(m); closeItemModal();
+  }
+  $('fldTagInput').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim();
+      if(v && !editingTags.includes(v)){ editingTags.push(v); renderTagList(); } e.target.value=''; }
+  });
+
+  // ============ 本地照片：裁剪 + 压缩 + 入图库 ============
+  function onFilePick(e){
+    const file=e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ alert('请选择图片文件'); e.target.value=''; return; }
+    const reader=new FileReader();
+    reader.onload=ev=>startCrop(ev.target.result, file.name);
+    reader.onerror=()=>alert('读取图片失败');
+    reader.readAsDataURL(file);
+  }
+  function startCrop(dataUrl, name){
+    $('cropImage').src=dataUrl;
+    $('cropModal').classList.remove('hidden');
+    if(cropper) cropper.destroy();
+    cropper=new Cropper($('cropImage'),{ aspectRatio:2/3, viewMode:1, autoCropArea:0.9, movable:true, zoomable:false, rotatable:false, background:false });
+    $('fileHint').textContent=name||'已选图片';
+  }
+  async function confirmCrop(){
+    if(!cropper){ alert('裁剪器未就绪'); return; }
+    const canvas=cropper.getCroppedCanvas({ maxWidth:600, maxHeight:900, imageSmoothingQuality:'high' });
+    if(!canvas){ alert('裁剪失败'); return; }
+    const compressed=canvas.toDataURL('image/jpeg',0.72);
+    $('fldImg').value=compressed;
+    $('imgPrev').src=compressed; $('imgPrev').classList.remove('hidden');
+    $('fileHint').textContent='已裁剪压缩';
+    try{ await galleryAdd(currentUser, compressed); await buildGallery(); }catch(e){}
+    closeCrop();
+  }
+  function closeCrop(){ $('cropModal').classList.add('hidden'); if(cropper){ cropper.destroy(); cropper=null; } }
+
+  // ============ 详情 ============
+  function openDetail(key, id){
+    const m=MODULES[key];
+    const it=itemsOf(m).find(x=>x.id===id); if(!it) return;
+    const img=it.img
+      ? `<img src="${it.img}" class="w-full max-w-[200px] aspect-[2/3] object-cover rounded-xl mx-auto">`
+      : `<div class="w-full max-w-[200px] aspect-[2/3] rounded-xl soft-bg flex items-center justify-center text-muted-c mx-auto"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-4xl"></i></div>`;
+    const tagsHtml=(it.tags||[]).length?`<div class="flex flex-wrap gap-2 mt-3">${it.tags.map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+    const noteHtml=it.note?`<div class="mt-4 p-3 rounded-xl text-sm leading-relaxed soft-bg-50">${escapeHtml(it.note)}</div>`:'';
+    const extraHtml=m.extraFields.map(f=>it[f.key]?`<div class="text-sm text-muted-c mt-2">${f.label}：${escapeHtml(it[f.key])}</div>`:'').join('');
+    $('detailContent').innerHTML=`
+      <div class="grid md:grid-cols-3 gap-5">
+        <div class="md:col-span-1">${img}</div>
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 flex-wrap mb-2"><h2 class="text-xl font-medium">${escapeHtml(it.title)}</h2>${statusBadge(m,it.status)}</div>
+          <div class="text-sm text-muted-c mb-3">${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
+          <div class="text-sm mb-3">${starStr(it.rating||0)}</div>
+          ${extraHtml}${tagsHtml}${noteHtml}
+          <div class="flex gap-2 mt-6 flex-wrap">
+            <button onclick="openItemModal('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-pencil mr-1"></i>编辑</button>
+            <button onclick="openPoster('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-image mr-1"></i>生成海报</button>
+            <button onclick="deleteItem('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm" style="color:#e57373"><i class="fa fa-trash mr-1"></i>删除</button>
+          </div>
+        </div>
+      </div>`;
+    $('detailModal').classList.remove('hidden');
+  }
+  function closeDetail(){ $('detailModal').classList.add('hidden'); }
+  function deleteItem(key, id){
+    const m=MODULES[key];
+    if(!confirm('确定删除该记录？')) return;
+    data[m.stateKey]=itemsOf(m).filter(x=>x.id!==id);
+    saveItems(m); closeDetail();
+  }
+
+  // ============ 海报导出 ============
+  function openPoster(key, id){
+    const m=MODULES[key]; const it=itemsOf(m).find(x=>x.id===id); if(!it) return;
+    posterTargetKey=key; posterTargetId=id;
+    $('optDarkPoster').checked=document.documentElement.getAttribute('data-mode')==='dark';
+    $('optShowNote').checked=true; $('optShowTags').checked=true;
+    renderPoster();
+    $('posterModal').classList.remove('hidden');
+  }
+  function closePoster(){ $('posterModal').classList.add('hidden'); posterTargetKey=null; posterTargetId=null; }
+  function renderPoster(){
+    if(!posterTargetKey) return;
+    const m=MODULES[posterTargetKey]; const it=itemsOf(m).find(x=>x.id===posterTargetId); if(!it) return;
+    const dark=$('optDarkPoster').checked, showNote=$('optShowNote').checked, showTags=$('optShowTags').checked;
+    const wrap=$('posterCanvas');
+    wrap.className='poster-canvas-wrap'+(dark?' dark-poster':'');
+    const bg=dark?'#22222b':getComputedStyle(document.documentElement).getPropertyValue('--bg');
+    wrap.style.background=bg; wrap.style.color=dark?'#eee':'var(--text)';
+    const imgPart=it.img
+      ? `<img src="${it.img}" crossorigin="anonymous" class="w-full aspect-[2/3] object-cover rounded-xl mb-3" onerror="this.style.display='none'">`
+      : `<div class="w-full aspect-[2/3] rounded-xl mb-3 flex items-center justify-center" style="background:${dark?'#33333f':'var(--soft)'};color:${dark?'#888':'var(--muted)'}"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-4xl"></i></div>`;
+    const tagsPart=(showTags && (it.tags||[]).length)?`<div class="flex flex-wrap gap-1.5 mt-2">${it.tags.map(t=>`<span style="background:${dark?'#3c3634':'var(--soft)'};color:${dark?'#eee':'var(--text)'}" class="text-xs px-2 py-0.5 rounded-full">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+    const notePart=(showNote && it.note)?`<div class="mt-3 p-3 rounded-xl text-xs leading-relaxed" style="background:${dark?'#33333f':'var(--soft)'};color:${dark?'#ddd':'var(--text)'}">${escapeHtml(it.note)}</div>`:'';
+    const [statusLbl]=statusInfo(m,it.status);
+    const extraTxt=m.extraFields.map(f=>it[f.key]?f.label+'：'+escapeHtml(it[f.key]):'').filter(Boolean).join(' · ');
+    wrap.innerHTML=`
+      ${imgPart}
+      <div class="text-center">
+        <div style="font-size:11px;color:${dark?'#aaa':'var(--muted)'};letter-spacing:1px">MY SHOW LOG</div>
+        <h3 style="font-size:18px;font-weight:500;margin-top:4px">${escapeHtml(it.title)}</h3>
+        <div style="font-size:12px;color:${dark?'#bbb':'var(--muted)'};margin-top:2px">${typeLabel(m,it.type)} · ${statusLbl} · ${progressStr(m,it)}${extraTxt?' · '+extraTxt:''}</div>
+        <div style="margin-top:6px">${starStr(it.rating||0)}</div>
+        ${tagsPart}${notePart}
+        <div style="margin-top:14px;font-size:10px;color:${dark?'#777':'var(--muted)'}">— MyShowLog —</div>
+      </div>`;
+  }
+  function downloadPoster(){
+    const target=$('posterCanvas');
+    html2canvas(target,{backgroundColor:null,scale:2}).then(canvas=>{
+      const link=document.createElement('a');
+      link.download='myshowlog-poster-'+Date.now()+'.png';
+      link.href=canvas.toDataURL('image/png'); link.click();
+    }).catch(()=>alert('海报生成失败，可能是图片跨域导致，请使用本地图库或同源图片'));
+  }
+
+  // ============ App 快捷 ============
+  function nativeFirst(){ return localStorage.getItem('msl_native_first')!=='0'; }
+  function toggleNativeFirst(){
+    const v = nativeFirst();
+    localStorage.setItem('msl_native_first', v ? '0' : '1');
+    syncNativeToggle(); renderAppShortcuts();
+  }
+  function syncNativeToggle(){
+    const cb=$('nativeFirstChk'); if(cb) cb.checked = nativeFirst();
+    const hint=$('nativeHint'); if(hint) hint.textContent = nativeFirst() ? '已开启：优先唤醒本机 App，未安装时自动回退网页' : '已关闭：仅打开网页版';
+  }
+  function allApps(){
+    const presets=PRESET_APPS.map(a=>({id:'p_'+a.name, name:a.name, url:a.url, scheme:a.scheme||'', preset:true}));
+    return [...presets, ...customApps.map(a=>({...a, preset:false}))];
+  }
+  function renderAppShortcuts(){
+    const wrap=$('appShortcuts'); if(!wrap) return;
+    const apps=allApps();
+    wrap.innerHTML=apps.map(a=>`
+      <button onclick="openApp('${a.id}')" class="card-ins flex flex-col items-center gap-1 py-2 px-1 text-xs hover:opacity-80" title="${escapeHtml(a.name)}${a.scheme?'\n原生: '+escapeHtml(a.scheme):''}\n网页: ${escapeHtml(a.url)}">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm relative" style="background:var(--accent);color:#fff">${escapeHtml((a.name||'A')[0])}${a.scheme&&nativeFirst()?'<span class="app-dot"></span>':''}</div>
+        <span class="truncate w-full text-center">${escapeHtml(a.name)}</span>
+      </button>`).join('');
+  }
+  function renderAppManage(){
+    const wrap=$('appManageList'); if(!wrap) return;
+    if(!customApps.length){ wrap.innerHTML='<p class="text-xs text-muted-c">暂无自定义应用（侧栏预置 7 个）</p>'; return; }
+    wrap.innerHTML=customApps.map(a=>`
+      <div class="flex items-center gap-3 p-2 rounded-xl soft-bg-50">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:var(--accent);color:#fff">${escapeHtml((a.name||'A')[0])}</div>
+        <div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${escapeHtml(a.name)}</div><div class="text-xs text-muted-c truncate">${escapeHtml(a.url)}${a.scheme?' · '+escapeHtml(a.scheme):''}</div></div>
+        <button onclick="openApp('${a.id}')" class="btn-outline px-3 py-1.5 text-xs">打开</button>
+        <button onclick="deleteCustomApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1" title="删除"><i class="fa fa-trash"></i></button>
+      </div>`).join('');
+  }
+  // 打开应用：优先唤醒本机 App（scheme），未安装/失败则回退网页
+  function openApp(id){
+    const a=allApps().find(x=>x.id===id);
+    if(!a||!a.url) return;
+    if(nativeFirst() && a.scheme){ launchNative(a.scheme, a.url); }
+    else { window.open(a.url,'_blank','noopener'); }
+  }
+  function launchNative(scheme, webUrl){
+    let opened=false;
+    const onVis=()=>{ if(document.hidden) opened=true; };
+    const onHide=()=>{ opened=true; };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', onHide);
+    // 用隐藏 iframe 触发 scheme，避免当前页被导航走
+    try{
+      const ifr=document.createElement('iframe');
+      ifr.style.display='none';
+      ifr.setAttribute('aria-hidden','true');
+      ifr.src=scheme;
+      document.body.appendChild(ifr);
+      setTimeout(()=>{ try{ ifr.remove(); }catch(e){} }, 2500);
+    }catch(e){}
+    // 超时未唤起则回退网页
+    setTimeout(()=>{
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', onHide);
+      if(!opened){ window.open(webUrl,'_blank','noopener'); }
+    }, 1500);
+  }
+  function addCustomApp(){
+    const name=prompt('应用名称（如：起点读书）');
+    if(!name||!name.trim()) return;
+    const url=prompt('网页网址（如 https://www.qidian.com）');
+    if(!url||!url.trim()) return;
+    let u=url.trim(); if(!/^https?:\/\//.test(u)) u='https://'+u;
+    const sc=prompt('原生 App 唤起协议（可选，如 qidian:// ；留空则仅用网页）');
+    let scheme='';
+    if(sc && sc.trim()){ scheme=sc.trim(); }
+    customApps.push({ id:uid(), name:name.trim(), url:u, scheme });
+    saveApps(); renderAppShortcuts(); renderAppManage(); buildAppDatalist();
+  }
+  function deleteCustomApp(id){
+    if(!confirm('删除该自定义应用？')) return;
+    customApps=customApps.filter(a=>a.id!==id);
+    saveApps(); renderAppShortcuts(); renderAppManage(); buildAppDatalist();
+  }
+  function buildAppDatalist(){
+    const dl=$('appList'); if(!dl) return;
+    dl.innerHTML=allApps().map(a=>`<option value="${escapeHtml(a.name)}"></option>`).join('');
+  }
+
+  // ============ 记录本 ============
+  function openRecordsModal(){
+    $('recordsModal').classList.remove('hidden');
+    buildAppDatalist(); renderRecords();
+  }
+  function closeRecordsModal(){ $('recordsModal').classList.add('hidden'); }
+  function renderRecords(){
+    const list=$('recordsList');
+    const pf=$('platformFilter');
+    const platforms=['all',...new Set(records.map(r=>r.software).filter(Boolean))];
+    pf.innerHTML=platforms.map(p=>{
+      const lbl=p==='all'?'全部':escapeHtml(p);
+      return `<span class="tag-chip ${currentPlatform===p?'active':''}" onclick='setPlatformFilter(${JSON.stringify(p)})'>${lbl}</span>`;
+    }).join('');
+    const filtered=records.filter(r=>currentPlatform==='all'||r.software===currentPlatform).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(!filtered.length){ list.innerHTML='<p class="text-muted-c text-sm text-center py-8">暂无记录</p>'; return; }
+    list.innerHTML=filtered.map(r=>{
+      const kindLbl=r.kind==='book'?'书':'剧';
+      return `<div class="card-ins p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xs shrink-0" style="background:var(--soft);color:var(--accent)">${escapeHtml((r.software||'P')[0]||'P')}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium truncate">${escapeHtml(r.title)} <span class="text-xs text-muted-c">[${kindLbl}]</span></div>
+          <div class="text-xs text-muted-c truncate">${escapeHtml(r.software||'-')}${r.episode?' · '+escapeHtml(r.episode):''}${r.date?' · '+r.date:''}${r.note?' · '+escapeHtml(r.note):''}</div>
+        </div>
+        <button onclick="recordToItem('${r.id}')" class="btn-outline px-3 py-1.5 text-xs whitespace-nowrap" title="转为想看/想读">${r.kind==='book'?'想读':'想看'}</button>
+        <button onclick="deleteRecord('${r.id}')" class="text-muted-c hover:opacity-70 px-1 shrink-0" title="删除"><i class="fa fa-trash"></i></button>
+      </div>`;
+    }).join('');
+  }
+  function setPlatformFilter(p){ currentPlatform=p||'all'; renderRecords(); }
+  function addRecord(){
+    const title=$('recTitle').value.trim();
+    if(!title){ alert('请填写标题'); return; }
+    records.unshift({ id:uid(), title, software:$('recSoftware').value.trim(), kind:$('recKind').value,
+      episode:$('recEpisode').value.trim(), date:$('recDate').value, note:$('recNote').value.trim(), createdAt:Date.now() });
+    saveRecords();
+    ['recTitle','recSoftware','recEpisode','recDate','recNote'].forEach(id=>$(id).value='');
+    renderRecords();
+  }
+  function deleteRecord(id){
+    if(!confirm('删除该记录？')) return;
+    records=records.filter(r=>r.id!==id); saveRecords(); renderRecords();
+  }
+  function recordToItem(id){
+    const r=records.find(x=>x.id===id); if(!r) return;
+    const key=r.kind==='book'?'book':'show';
+    const m=MODULES[key];
+    itemsOf(m).unshift({ id:uid(), title:r.title, type:m.defaultType, status:m.defaultStatus,
+      [m.pField]:0, [m.tField]:0, rating:0, img:'', tags:[r.software].filter(Boolean),
+      note:'来自 '+(r.software||'记录本')+(r.episode?' · '+r.episode:''), ...(m.extraFields.length?Object.fromEntries(m.extraFields.map(f=>[f.key,''])):{}),
+      createdAt:Date.now() });
+    saveItems(m);
+    alert('已加入'+m.label+'的「'+m.statuses[m.defaultStatus][0]+'」列表');
+  }
+  function importRecordsClipboard(){
+    const text=prompt('粘贴多行记录，每行一条，用 | 分隔：\n格式：标题 | 软件 | 进度 | 类型(剧/书)\n例如：\n我的阿勒泰 | 爱奇艺 | 第3集 | 剧\n三体 | 番茄小说 | 第5章 | 书');
+    if(!text) return;
+    const lines=text.split(/\n/).map(s=>s.trim()).filter(Boolean);
+    let n=0;
+    for(const line of lines){
+      const parts=line.split('|').map(s=>s.trim());
+      if(!parts[0]) continue;
+      const kindStr=(parts[3]||'').includes('书')?'book':'show';
+      records.unshift({ id:uid(), title:parts[0], software:parts[1]||'', kind:kindStr,
+        episode:parts[2]||'', date:'', note:'', createdAt:Date.now() });
+      n++;
+    }
+    saveRecords(); renderRecords();
+    alert('已导入 '+n+' 条');
+  }
+
+  // ============ 本地图库授权 ============
+  async function authorizeGallery(){
+    if(!currentUser){ alert('请先登录'); return; }
+    if(window.showOpenFilePicker){
+      try{
+        const handles=await window.showOpenFilePicker({ multiple:true, types:[{description:'图片',accept:{'image/*':['.png','.jpg','.jpeg','.webp','.gif','.bmp']}}] });
+        let n=0;
+        for(const h of handles){
+          try{ const file=await h.getFile(); const d=await compressForGallery(file); await galleryAdd(currentUser,d); n++; }catch(e){}
+        }
+        alert('已授权并导入 '+n+' 张到本地图库');
+        await buildGallery();
+      }catch(e){ if(e.name!=='AbortError') alert('选择失败：'+e.message); }
+    }else{
+      $('authGalleryInput').click();
+    }
+  }
+  async function onAuthGalleryUpload(e){
+    const files=[...e.target.files]; e.target.value='';
+    let n=0;
+    for(const f of files){
+      if(!f.type.startsWith('image/')) continue;
+      try{ const d=await compressForGallery(f); await galleryAdd(currentUser,d); n++; }catch(err){}
+    }
+    await buildGallery();
+    if(n) alert('已导入 '+n+' 张到本图库');
+  }
+
+  // ============ 个人主页 ============
+  function renderMiniProfile(){
+    const name=profile.name||currentUser||'用户';
+    $('miniName').textContent=name;
+    $('miniUser').textContent='@'+(currentUser||'');
+    $('miniAvatar').textContent=(name[0]||'U').toUpperCase();
+  }
+  function renderProfile(){
+    const name=profile.name||currentUser||'用户';
+    $('profileName').value=name;
+    $('profileUser').textContent='@'+(currentUser||'');
+    $('profileSince').textContent = profile.since ? new Date(profile.since).toLocaleDateString('zh-CN') : '今天';
+    $('profileAvatar').textContent=(name[0]||'U').toUpperCase();
+    $('pStatShows').textContent=data.shows.length;
+    $('pStatBooks').textContent=data.books.length;
+    const rated=[...data.shows,...data.books].filter(x=>x.rating>0);
+    $('pStatAvg').textContent=rated.length?(rated.reduce((a,b)=>a+(b.rating||0),0)/rated.length).toFixed(1):'0.0';
+    $('pStatRecords').textContent=records.length;
+    const recent=[...data.shows.map(x=>({...x,_k:'show'})),...data.books.map(x=>({...x,_k:'book'}))]
+      .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,10);
+    $('recentList').innerHTML = recent.length ? recent.map(it=>{
+      const m=MODULES[it._k];
+      const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
+      const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
+      return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2">${img}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
+    }).join('') : '<p class="text-muted-c text-sm col-span-full">暂无记录</p>';
+  }
+  function saveProfileName(){
+    const v=$('profileName').value.trim();
+    if(!v){ alert('名字不能为空'); return; }
+    profile.name=v; if(!profile.since) profile.since=Date.now();
+    saveProfile(); renderMiniProfile(); renderProfile();
+    alert('已保存');
+  }
+
+  // ============ 数据导入/导出 ============
+  function exportData(){
+    const payload={ exportedAt:new Date().toISOString(), user:currentUser, shows:data.shows, books:data.books, records, customApps, profile };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const link=document.createElement('a');
+    link.download='myshowlog-'+currentUser+'-'+Date.now()+'.json';
+    link.href=URL.createObjectURL(blob); link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  function importData(e){
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(typeof d!=='object'||d===null) throw new Error('格式错误');
+        const total=(Array.isArray(d.shows)?d.shows.length:0)+(Array.isArray(d.books)?d.books.length:0);
+        if(!confirm('将导入 '+total+' 条剧集/书籍记录并覆盖当前数据，确定？')) return;
+        if(Array.isArray(d.shows)) data.shows=d.shows;
+        if(Array.isArray(d.books)) data.books=d.books;
+        if(Array.isArray(d.records)) records=d.records;
+        if(Array.isArray(d.customApps)) customApps=d.customApps;
+        if(d.profile) Object.assign(profile,d.profile);
+        Object.values(MODULES).forEach(m=>saveItems(m));
+        saveRecords(); saveApps(); saveProfile();
+        renderAppShortcuts();
+        alert('导入成功');
+      }catch(err){ alert('导入失败：'+err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  }
+  function clearAllData(){
+    if(!confirm('将清空当前账号所有剧集、书籍、记录与自定义应用，且不可恢复，确定？')) return;
+    data.shows=[]; data.books=[]; records=[]; customApps=[];
+    Object.values(MODULES).forEach(m=>saveItems(m));
+    saveRecords(); saveApps(); renderAppShortcuts();
+    alert('已清空');
+  }
+
+  // ============ 事件绑定 ============
+  document.addEventListener('click', e=>{
+    const btn=e.target.closest('.filter-btn'); if(!btn) return;
+    const mkey=btn.dataset.m, f=btn.dataset.f;
+    ui[mkey].filter=f;
+    renderFilterTabs(MODULES[mkey]);
+    renderGrid(MODULES[mkey]);
+  });
+  ['show','book'].forEach(k=>{
+    $('searchInput_'+k).addEventListener('input', e=>{ ui[k].keyword=e.target.value.trim(); renderGrid(MODULES[k]); });
+    $('sortSelect_'+k).addEventListener('change', e=>{ ui[k].sort=e.target.value; renderGrid(MODULES[k]); });
+  });
+
+  // ============ 分享 ============
+  function openShareModal(){
+    $('shareUrlBox').value = window.location.href.split('#')[0];
+    $('shareDataUrlBox').value = '';
+    $('shareDataInfo').textContent = '';
+    $('shareModal').classList.remove('hidden');
+  }
+  function closeShareModal(){ $('shareModal').classList.add('hidden'); }
+  function copyShareUrl(type){
+    const box = type==='data' ? $('shareDataUrlBox') : $('shareUrlBox');
+    const val = (box.value||'').trim();
+    if(!val){ alert(type==='data' ? '请先生成分享地址' : '地址为空'); return; }
+    box.select(); box.setSelectionRange(0, val.length);
+    let ok=false;
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(val); ok=true; } }catch(e){}
+    if(!ok){ try{ ok=document.execCommand('copy'); }catch(e){} }
+    alert(ok ? '已复制到剪贴板：\n'+val : '复制失败，请手动复制：\n'+val);
+  }
+  // 生成包含清单数据的分享链接（不含图片，体积更小）
+  function buildSharePack(){
+    const shows = itemsOf(MODULES.show);
+    const books = itemsOf(MODULES.book);
+    return {
+      v:1, app:'MyShowLog', from: currentUser, at: Date.now(),
+      shows: shows.map(it=>({ t:it.title, ty:it.type, st:it.status, p:it[MODULES.show.pField]||0, tot:it[MODULES.show.tField]||0, r:it.rating||0, tg:(it.tags||[]).slice(0,8), au:'' })),
+      books: books.map(it=>({ t:it.title, ty:it.type, st:it.status, p:it[MODULES.book.pField]||0, tot:it[MODULES.book.tField]||0, r:it.rating||0, tg:(it.tags||[]).slice(0,8), au:it.author||'' }))
+    };
+  }
+  function generateShareDataUrl(){
+    if(!currentUser){ alert('请先登录'); return; }
+    const shows = itemsOf(MODULES.show);
+    const books = itemsOf(MODULES.book);
+    const total = shows.length + books.length;
+    if(!total){ alert('当前没有任何剧集或书籍，无法生成分享链接'); return; }
+    const pack = buildSharePack();
+    let b64;
+    try{ b64 = btoa(unescape(encodeURIComponent(JSON.stringify(pack)))); }
+    catch(e){ alert('生成失败：'+e.message); return; }
+    const url = window.location.href.split('#')[0] + '#share=' + b64;
+    $('shareDataUrlBox').value = url;
+    $('shareDataInfo').textContent = '已生成：'+shows.length+' 部剧集 + '+books.length+' 本书籍（链接长度 '+url.length+' 字符）';
+  }
+  // 复制 JSON 数据到剪贴板（与小程序「从剪贴板导入」格式互通）
+  function copyShareJson(){
+    if(!currentUser){ alert('请先登录'); return; }
+    const shows = itemsOf(MODULES.show);
+    const books = itemsOf(MODULES.book);
+    if(!(shows.length + books.length)){ alert('当前没有任何剧集或书籍'); return; }
+    const json = JSON.stringify(buildSharePack());
+    let ok=false;
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(json); ok=true; } }catch(e){}
+    if(!ok){ try{ const ta=document.createElement('textarea'); ta.value=json; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e){} }
+    alert(ok ? '已复制 JSON 数据到剪贴板，可在小程序「我的 → 从剪贴板导入」处粘贴导入' : '复制失败，请手动复制：\n'+json.slice(0,200));
+  }
+  // 调用系统分享（移动端）
+  function nativeShare(){
+    const url = ($('shareDataUrlBox').value||'').trim() || ($('shareUrlBox').value||'').trim();
+    if(!url){ alert('地址为空'); return; }
+    if(navigator.share){
+      navigator.share({ title:'MyShowLog · 我的剧集与书架', text:'来看看我的剧集与书架清单', url })
+        .catch(()=>{});
+    }else{
+      copyShareUrl(($('shareDataUrlBox').value||'').trim() ? 'data' : 'page');
+    }
+  }
+  // 导入分享链接中的清单数据
+  function importSharedData(b64){
+    let pack;
+    try{ pack = JSON.parse(decodeURIComponent(escape(atob(b64)))); }
+    catch(e){ alert('分享链接已损坏，无法解析'); return; }
+    if(!pack || pack.v!==1 || (!pack.shows && !pack.books)){ alert('分享链接内容为空'); return; }
+    const from = pack.from || '他人';
+    const nShow = (pack.shows||[]).length, nBook = (pack.books||[]).length;
+    if(!confirm(from+' 分享了 '+nShow+' 部剧集、'+nBook+' 本书籍。\n是否导入到你的清单（不会覆盖你已有的数据，会新增到列表）？')) return;
+    if(!currentUser){
+      alert('请先登录后再导入分享数据');
+      return;
+    }
+    let addShow=0, addBook=0;
+    (pack.shows||[]).forEach(s=>{
+      itemsOf(MODULES.show).unshift({
+        id:uid(), createdAt:Date.now(),
+        title:s.t||'未命名', type:(s.ty in MODULES.show.types)?s.ty:MODULES.show.defaultType,
+        status:(s.st in MODULES.show.statuses)?s.st:MODULES.show.defaultStatus,
+        [MODULES.show.pField]:s.p||0, [MODULES.show.tField]:s.tot||0,
+        rating:s.r||0, img:'', tags:(s.tg||[]).slice(0,8), note:'来源：'+from
+      });
+      addShow++;
+    });
+    (pack.books||[]).forEach(b=>{
+      itemsOf(MODULES.book).unshift({
+        id:uid(), createdAt:Date.now(),
+        title:b.t||'未命名', type:(b.ty in MODULES.book.types)?b.ty:MODULES.book.defaultType,
+        status:(b.st in MODULES.book.statuses)?b.st:MODULES.book.defaultStatus,
+        [MODULES.book.pField]:b.p||0, [MODULES.book.tField]:b.tot||0,
+        rating:b.r||0, img:'', tags:(b.tg||[]).slice(0,8), author:b.au||'', note:'来源：'+from
+      });
+      addBook++;
+    });
+    saveItems(MODULES.show); saveItems(MODULES.book);
+    alert('已导入 '+addShow+' 部剧集、'+addBook+' 本书籍');
+    // 清除地址栏的分享标记，避免刷新重复导入
+    try{ history.replaceState(null, '', window.location.pathname + window.location.search); }catch(e){}
+  }
+
+  // ============ PWA：可安装 + 离线 ============
+  function setupPWA(){
+    // 动态生成 manifest（保持单文件自包含），内嵌 SVG 图标
+    const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" rx="40" fill="#D4B5AD"/><path fill="#fff" d="M44 56h92a8 8 0 0 1 8 8v10H36V64a8 8 0 0 1 8-8z"/><g fill="#D4B5AD"><path d="M40 66 54 52l12 12-12 12z"/><path d="M72 66l12-12 12 12-12 12z"/><path d="M104 66l12-12 12 12-12 12z"/><path d="M136 66l12-12 6 6-12 12z"/></g><rect x="36" y="74" width="108" height="54" rx="8" fill="#fff" opacity=".18"/><rect x="44" y="82" width="22" height="38" rx="3" fill="#fff" opacity=".85"/><rect x="74" y="82" width="22" height="38" rx="3" fill="#fff" opacity=".7"/><rect x="104" y="82" width="22" height="38" rx="3" fill="#fff" opacity=".85"/></svg>';
+    const iconUrl = 'data:image/svg+xml,'+encodeURIComponent(iconSvg);
+    const manifest = {
+      name:'MyShowLog｜我的剧集与书架记录本', short_name:'MyShowLog',
+      description:'本地存储的剧集与书架记录本，支持标签/评分/统计/分享',
+      start_url:'./', scope:'./', display:'standalone', orientation:'any',
+      background_color:'#F5EFE9', theme_color:'#D4B5AD',
+      icons:[
+        {src:iconUrl, sizes:'192x192', type:'image/svg+xml', purpose:'any'},
+        {src:iconUrl, sizes:'512x512', type:'image/svg+xml', purpose:'any'},
+        {src:iconUrl, sizes:'any', type:'image/svg+xml', purpose:'maskable'}
+      ]
+    };
+    try{
+      const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+      const url = URL.createObjectURL(blob);
+      let link = document.querySelector('link[rel="manifest"]');
+      if(!link){ link=document.createElement('link'); link.rel='manifest'; document.head.appendChild(link); }
+      link.href = url;
+    }catch(e){}
+    // 注册 service worker（仅 http/https 下生效，file:// 跳过）
+    if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  }
+  // 下载离线网页（自包含单文件，可发送给好友或托管到任意静态空间）
+  async function downloadOfflinePage(){
+    try{
+      const res = await fetch(location.href.split('#')[0], {cache:'no-store'});
+      const html = await res.text();
+      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'MyShowLog.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+      alert('已下载离线网页 MyShowLog.html\n可发送给好友直接打开，或托管到 GitHub Pages / Netlify / Vercel 等静态空间。');
+    }catch(e){ alert('下载失败：'+e.message); }
+  }
+
+  // ============ 初始化 ============
+  function init(){
+    applyTheme(); applySidebarState(); applyOrientation();
+    setupPWA();
+    syncNativeToggle(); renderAppShortcuts();
+    const sess=localStorage.getItem(STORAGE_SESSION);
+    if(sess){ currentUser=sess; enterApp(); }
+    else{ $('appShell').classList.add('hidden'); $('loginModal').classList.remove('hidden'); }
+    // 检测分享链接
+    const hash = window.location.hash || '';
+    const m = hash.match(/#share=([A-Za-z0-9+/=]+)/);
+    if(m && m[1]){
+      const pending = m[1];
+      if(currentUser){
+        // 已登录：延迟一点再提示导入，确保界面已渲染
+        setTimeout(()=>importSharedData(pending), 300);
+      }else{
+        // 未登录：暂存到 sessionStorage，登录后导入
+        sessionStorage.setItem('msl_pending_share', pending);
+      }
+    }
+  }
+  window.addEventListener('DOMContentLoaded', init);
+  // 随系统横竖屏切换：监听朝向变化与窗口尺寸变化
+  window.addEventListener('orientationchange', ()=>setTimeout(applyOrientation, 120));
+  window.addEventListener('resize', applyOrientation);
+  if(window.matchMedia && window.matchMedia('(orientation: landscape)').addEventListener){
+    window.matchMedia('(orientation: landscape)').addEventListener('change', applyOrientation);
+  }
+  // 监听地址栏 hash 变化（同一页面内打开分享链接时也能触发导入）
+  window.addEventListener('hashchange', ()=>{
+    const hash = window.location.hash || '';
+    const m = hash.match(/#share=([A-Za-z0-9+/=]+)/);
+    if(m && m[1] && currentUser){
+      importSharedData(m[1]);
+    }
+  });
+</script>
+</body>
+</html>
