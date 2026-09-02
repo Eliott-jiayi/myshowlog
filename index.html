@@ -62,6 +62,71 @@
     .badge-done { background:var(--state-done); color:#3a3a3a; }
     .badge-replay { background:linear-gradient(135deg,#f4a6a4 0%,#c79fe8 100%); color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.15); font-weight:600; letter-spacing:.2px; }
     .badge-replay::before{ content:'↻ '; display:inline; }
+
+    /* ===== 评价体系样式 ===== */
+    .badge-grade {
+      display:inline-flex; align-items:center; justify-content:center;
+      font-weight:800; letter-spacing:.5px; color:#fff;
+      width:30px; height:30px; min-width:30px; border-radius:9px;
+      box-shadow:0 2px 6px rgba(0,0,0,.18); font-style:italic; font-size:14px;
+    }
+    .badge-grade.sm { width:24px; height:24px; min-width:24px; border-radius:7px; font-size:12px; }
+    .badge-grade.lg { width:40px; height:40px; min-width:40px; border-radius:12px; font-size:20px; }
+    .badge-grade-S{ background:linear-gradient(135deg,#C026D3,#D97706); }
+    .badge-grade-A{ background:linear-gradient(135deg,#F59E0B,#EF4444); }
+    .badge-grade-B{ background:linear-gradient(135deg,#10B981,#14B8A6); }
+    .badge-grade-C{ background:linear-gradient(135deg,#60A5FA,#8B5CF6); }
+    .badge-grade-D{ background:linear-gradient(135deg,#94A3B8,#A78BFA); }
+    .badge-grade-F{ background:linear-gradient(135deg,#B91C1C,#7C2D12); }
+    .review-tag-chip{
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:500;
+      background:linear-gradient(135deg,rgba(168,85,247,.10),rgba(251,146,60,.10));
+      color:#7C3AED; border:1px solid rgba(168,85,247,.25);
+    }
+    .review-tag-chip[data-tone="neg"]{
+      background:linear-gradient(135deg,rgba(239,68,68,.10),rgba(245,158,11,.10));
+      color:#B91C1C; border-color:rgba(239,68,68,.25);
+    }
+    .review-tag-chip[data-tone="pos"]{
+      background:linear-gradient(135deg,rgba(16,185,129,.10),rgba(139,92,246,.10));
+      color:#047857; border-color:rgba(16,185,129,.25);
+    }
+    .review-tag-chip i { opacity:.7; }
+    .review-source-icon { display:inline-flex; align-items:center; justify-content:center; font-size:12px; width:20px; height:20px; border-radius:50%; background:var(--soft); color:var(--muted); }
+    .review-grade-picker { display:flex; gap:10px; flex-wrap:wrap; }
+    .review-grade-picker .rg-btn{
+      all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+      width:40px; height:40px; border-radius:50%; font-weight:800; font-style:italic; font-size:18px;
+      color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.18); transition:.15s; opacity:.55; border:2px solid transparent;
+    }
+    .review-grade-picker .rg-btn.active { opacity:1; border-color:var(--text); transform:scale(1.08); }
+    .review-grade-picker .rg-btn:hover { opacity:.9; }
+
+    /* 题材二级分组折叠样式 */
+    .theme-subgroups { display:flex; flex-direction:column; gap:8px; }
+    .theme-subgroups > details.theme-subgroup {
+      border-radius:12px; background:color-mix(in srgb,var(--soft) 55%,transparent);
+      padding:6px 10px;
+    }
+    .theme-subgroups > details.theme-subgroup[open] { padding-bottom:8px; }
+    .theme-subgroups > details.theme-subgroup > summary {
+      list-style:none; cursor:pointer; user-select:none;
+      font-size:12px; color:var(--muted); font-weight:600;
+      display:flex; align-items:center; gap:6px; padding:2px 0;
+    }
+    .theme-subgroups > details.theme-subgroup > summary::-webkit-details-marker { display:none; }
+    .theme-subgroups > details.theme-subgroup > summary::before {
+      content:'▸'; font-size:12px; color:var(--muted); transition:transform .15s; display:inline-block; width:12px;
+    }
+    .theme-subgroups > details.theme-subgroup[open] > summary::before { transform:rotate(90deg); }
+    .theme-subgroups > details.theme-subgroup > summary .sg-count {
+      margin-left:auto; font-weight:500; font-size:10.5px; padding:1px 7px; border-radius:999px; background:var(--soft);
+    }
+    .theme-subgroups > details.theme-subgroup > div { padding-top:6px; }
+    @media (max-width:640px){
+      .review-grade-picker .rg-btn{ width:36px; height:36px; font-size:16px; }
+    }
     .stat-want { background:color-mix(in srgb,var(--state-want) 45%,transparent); }
     .stat-watching { background:color-mix(in srgb,var(--state-watching) 55%,transparent); }
     .stat-done { background:color-mix(in srgb,var(--state-done) 55%,transparent); }
@@ -117,21 +182,33 @@
       html.landscape main{ padding:0.5rem 0.75rem; }
       /* 横屏统计/网格更宽 */
       html.landscape [id$="StatsWrap"]{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
-      html.landscape #showGrid, html.landscape #bookGrid{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
-      /* 弹窗横屏紧凑 */
-      html.landscape .modal-wrap > *{ margin-top:1rem; margin-bottom:1rem; }
+      html.landscape #showGrid, html.landscape #bookGrid{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+    }
+    /* 手机横屏：<768 landscape 网格更紧凑（之前4列太挤→3列）；短高<500px 进一步收起侧栏 */
+    @media (max-width:767px) and (orientation: landscape){
+      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+      html.landscape #showGrid, html.landscape #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+    }
+    /* 短高横屏（innerHeight<500）：侧栏紧凑，.collapse-hide 隐藏 */
+    @media (max-height:500px) and (orientation:landscape){
+      #sidebar { width:64px !important; }
+      #sidebar .collapse-hide { display:none !important; }
+      #sidebar .nav-item { justify-content:center; padding-left:0; padding-right:0; }
+      #sidebar .mini-row { justify-content:center; }
+      #sidebar .mini-info { display:none; }
+      #mobileHeader { display:none !important; }
+      #desktopBar { display:flex !important; }
+      main { padding:.5rem .75rem; }
+      html.landscape #sidebarBackdrop { display:none !important; }
     }
     .scrollbar-thin::-webkit-scrollbar { width:6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 
-    /* ===== 三档响应式：竖屏 2~3 列 / 横屏 4~5 列 × 手机/平板/电脑 =====
+    /* ===== 四档响应式：手机2-3列 / 平板3-4列 / 电脑4-5列 / 超宽6列 =====
        列数依「宽高比（朝向）+ 屏幕宽度」自动调整 */
     /* —— 手机竖屏（width<768 且 高>宽）：2 列 —— */
     @media (max-width:767px){
       #showGrid, #bookGrid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
-    }
-    @media (max-width:767px) and (orientation: landscape){
-      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
     }
     /* —— 平板（768~1023）：竖屏 3 列 / 横屏 4 列 —— */
     @media (min-width:768px) and (max-width:1023px) and (orientation: portrait){
@@ -149,7 +226,7 @@
     @media (min-width:768px) and (max-width:1023px) and (orientation: landscape){
       #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
     }
-    /* —— 电脑（≥1024）：竖屏 3 列 / 横屏 4 列 / 大宽屏 5 列 —— */
+    /* —— 电脑（≥1024）：竖屏 4 列 / 横屏 4 列 / ≥1280 横屏 5 列 / ≥1600 横屏 6 列 —— */
     @media (min-width:1024px){
       main { padding:1.5rem 2rem; }
       .max-w-6xl { max-width:72rem; }
@@ -157,13 +234,36 @@
       #recentList { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
     }
     @media (min-width:1024px) and (orientation: portrait){
-      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
     }
     @media (min-width:1280px){
       #showGrid, #bookGrid { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+      #recentList.card { grid-template-columns:repeat(6,minmax(0,1fr)) !important; }
     }
     @media (min-width:1280px) and (orientation: portrait){
-      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+    }
+    @media (min-width:1600px){
+      main { padding:1.75rem 2.25rem; }
+      .max-w-6xl { max-width:88rem; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(6,minmax(0,1fr)) !important; }
+      #recentList[style] { /* profile grid style */ }
+      /* profile card 默认 = grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5；超宽加1列 */
+      main #recentList.grid-cols-2,
+      main #recentList[class*="grid-cols-2"],
+      body #recentList { }
+      body #recentList.grid:not([class*="grid-cols-3"]):not([class*="grid-cols-5"]):not([class*="grid-cols-8"]) {
+        grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+      }
+      /* grid 宫格墙：lg:grid-cols-8 → 9 列 */
+      #recentList.lg\:grid-cols-8,
+      body main #recentList[class*="lg:grid-cols-8"] { grid-template-columns:repeat(9,minmax(0,1fr)) !important; }
+    }
+    /* 条目弹窗：≤640px 强制 92vw，登录/详情等所有弹窗同步收紧 */
+    @media (max-width:640px){
+      .item-modal-card { max-width:92vw !important; }
+      .modal-wrap > .card-ins { max-width:92vw !important; margin-left:auto !important; margin-right:auto !important; padding:1rem !important; }
+      .modal-wrap > div > .card-ins { max-width:92vw !important; margin-left:auto !important; margin-right:auto !important; padding:1rem !important; }
     }
     /* 手机：登录弹窗与卡片更紧凑 */
     @media (max-width:767px){
@@ -277,7 +377,7 @@
 
 <!-- ============ 添加/编辑条目弹窗（剧集/书籍共用） ============ -->
 <div id="itemModal" class="modal-wrap fixed inset-0 z-50 hidden overflow-y-auto">
-  <div class="card-ins p-6 w-full max-w-lg mx-auto my-8 relative">
+  <div class="card-ins p-6 w-full max-w-2xl mx-auto my-8 relative item-modal-card">
     <button onclick="closeItemModal()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
     <h3 id="itemModalTitle" class="text-lg font-medium mb-4">添加</h3>
     <input id="aiPhotoFile" type="file" accept="image/*" class="hidden" onchange="onAIPhotoPick(event)"/>
@@ -318,10 +418,14 @@
         <img id="imgPrev" class="image-preview w-24 h-32 mt-2 hidden soft-bg" alt="预览"/>
       </div>
       <div>
-        <label class="text-sm block mb-1">标签（回车添加，或点选下方常用标签）</label>
-        <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 神作"/><button type="button" onclick="addTagFromInput()" class="btn-soft px-4 py-2.5 text-sm shrink-0 flex items-center gap-1"><i class="fa fa-plus"></i>标签</button></div>
+        <label class="text-sm block mb-1">标签（回车添加，或点选下方常用标签；输入评价词会自动识别加到独立的「综合评价」区）</label>
+        <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 科幻"/><button type="button" onclick="addTagFromInput()" class="btn-soft px-4 py-2.5 text-sm shrink-0 flex items-center gap-1"><i class="fa fa-plus"></i>标签</button></div>
         <div id="tagPresetList" class="flex flex-wrap gap-1.5 mt-2"></div>
         <div id="tagList" class="flex flex-wrap gap-2 mt-2"></div>
+      </div>
+      <div class="pt-3 border-t border-[var(--border)]">
+        <label class="text-sm block mb-2"><i class="fa fa-trophy mr-1" style="color:var(--accent)"></i>综合评价评级（与普通标签区分展示；可 AI 生成或手动点选）</label>
+        <div id="reviewSection"></div>
       </div>
       <div><label class="text-sm block mb-1">笔记</label><textarea id="fldNote" rows="3" class="input-ins w-full px-4 py-2.5" placeholder="记下你的感受..."></textarea></div>
     </div>
@@ -852,6 +956,40 @@
         STORAGE_THEME='msl_theme', STORAGE_MODE='msl_mode',
         STORAGE_PROFILE='msl_profile_', STORAGE_APPS='msl_apps_';
 
+  // ============ 标签/评级 单一真相源 ============
+  const OLD_REVIEW_TAGS = ['神作','年度最佳','治愈系','追更中','已弃','烂尾','佳作','口碑爆棚','强推','无脑爽','节奏慢','逻辑渣','剧情拉垮','剧情垮','催泪','意难平','后劲大','高开低走','前紧后松','人设完美','泪目','二刷预定','中规中矩','可看但不推荐','可看但不推','治愈神番','年度必看','冷门佳作','烧脑','神仙打架','翻车','玛丽苏','工业糖精','老套','经典'];
+  const OLD_REVIEW_TAG_SET = new Set(OLD_REVIEW_TAGS);
+  const THEME_SUBGROUPS_SHOW = [
+    { name:'剧情向',   open:true,  tags:['剧情','悬疑','推理','群像','谍战','权谋','军旅','历史','年代','现实','传记','犯罪','政治'] },
+    { name:'情感向',   open:true,  tags:['爱情','青春','校园','治愈','甜宠','虐恋','家庭','亲情','友情','职场','成长'] },
+    { name:'幻想向',   open:true,  tags:['科幻','奇幻','玄幻','仙侠','武侠','穿越','重生','异世界','末世','无限流','超能力','神话'] },
+    { name:'悬疑惊悚', open:false, tags:['惊悚','恐怖','灵异','怪谈','犯罪','解谜','冒险','探案'] },
+    { name:'日常治愈', open:false, tags:['日常','美食','萌宠','音乐','歌舞','运动','竞技','旅行','文艺','纪录'] },
+    { name:'动作冒险', open:false, tags:['热血','动作','战斗','冒险','战争','枪战','赛车','机甲','异能'] },
+    { name:'年代现实', open:false, tags:['都市','现代','乡村','民国','古装','宫廷','纪实'] }
+  ];
+  const THEME_SUBGROUPS_BOOK = [
+    { name:'幻想类',   open:true,  tags:['玄幻','仙侠','奇幻','科幻','武侠','洪荒','诸天','无限流','穿越','重生','异世界','末世','系统','灵异','恐怖','网游','神话','解谜','盗墓','克苏鲁','散文','文学'] },
+    { name:'现实类',   open:true,  tags:['都市','现实','年代','民国','乡村','职场','商战','军事','历史','种田','基建','体育','校园'] },
+    { name:'悬疑惊悚', open:true,  tags:['悬疑','推理','恐怖','灵异','怪谈','探案','惊悚','冒险','犯罪','盗墓','克苏鲁','烧脑'] },
+    { name:'情感向',   open:false, tags:['爱情','青春','校园','甜宠','虐恋','治愈','豪门','古言','现言','团宠','重生复仇','快穿','穿书','末世基建','仙侠言情','奇幻言情','宅斗','宫斗','娱乐圈','职场大女主','双女主'] },
+    { name:'历史军事', open:false, tags:['历史','争霸','军事','战争','谍战','架空','三国','秦汉','隋唐','明清','军旅'] },
+    { name:'二次元',   open:false, tags:['轻小说','日系','动漫','同人','游戏','VR','综漫','韩漫','台版'] }
+  ];
+  function buildThemeTagList(subgroups){ const set = new Set(); subgroups.forEach(g => g.tags.forEach(t => set.add(t))); return [...set]; }
+  const REVIEW_GRADES = [
+    { k:'S', label:'S', title:'神级 · 力荐',     bg:'linear-gradient(135deg,#C026D3 0%,#D97706 100%)', fg:'#fff' },
+    { k:'A', label:'A', title:'优秀 · 推荐',     bg:'linear-gradient(135deg,#F59E0B 0%,#EF4444 100%)', fg:'#fff' },
+    { k:'B', label:'B', title:'良好 · 可看',     bg:'linear-gradient(135deg,#10B981 0%,#14B8A6 100%)', fg:'#fff' },
+    { k:'C', label:'C', title:'一般 · 平庸',     bg:'linear-gradient(135deg,#60A5FA 0%,#8B5CF6 100%)', fg:'#fff' },
+    { k:'D', label:'D', title:'较差 · 失望',     bg:'linear-gradient(135deg,#94A3B8 0%,#A78BFA 100%)', fg:'#fff' },
+    { k:'F', label:'F', title:'极差 · 避雷',     bg:'linear-gradient(135deg,#B91C1C 0%,#7C2D12 100%)', fg:'#fff' }
+  ];
+  const REVIEW_GRADE_MAP = Object.fromEntries(REVIEW_GRADES.map(g=>[g.k,g]));
+  const REVIEW_TAG_PRESETS_COMMON = ['神作','强推','必看','佳作','佳作可期','后劲大','年度最佳','冷门佳作','治愈神番','节奏好','剧情在线','人设完美','泪目','意难平','二刷预定','值得N刷','中规中矩','可看但不推','高开低走','前紧后松','节奏慢','水剧情','逻辑渣','剧情拉垮','工业糖精','玛丽苏','老套','烂尾','翻车','已弃','追更中','无脑爽','狗血','烧脑','神仙打架'];
+  const REVIEW_TAG_PRESETS_SHOW = REVIEW_TAG_PRESETS_COMMON;
+  const REVIEW_TAG_PRESETS_BOOK = [...REVIEW_TAG_PRESETS_COMMON, '文笔佳','世界观宏大','人物立体','爽点密集','套路老','灌水','冗长','掉书袋','BE','HE','OE'];
+
   // 模块配置：剧集与书架共享逻辑
   const MODULES = {
     show: { key:'show', label:'剧集', labelSingle:'剧集', viewName:'home',
@@ -862,11 +1000,10 @@
       pField:'watched', tField:'total', pLabel:'已看', tLabel:'总集数', unit:'集',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#D4B5AD'],
       tagPresetGroups:[
-        {name:'评价', tags:['神作','年度最佳','治愈系','追更中','已弃','烂尾','佳作','口碑爆棚']},
-        {name:'题材', tags:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','校园','运动','音乐','推理','群像','黑暗','年代','穿越','纪录','冒险','恐怖']},
-        {name:'语言', tags:['中文','国创','日番','欧美','韩剧','动画电影','真人','配音']},
-        {name:'男频', tags:['爽剧','逆袭','权谋','战斗','装逼','打脸','热血男','后宫']},
-        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言']}
+        {name:'题材', tags:buildThemeTagList(THEME_SUBGROUPS_SHOW)},
+        {name:'语言', tags:['中文','国创','日番','欧美','韩剧','泰剧','台剧','动画番','动画电影','真人','配音','粤语','英语']},
+        {name:'男频', tags:['爽剧','逆袭','权谋','战斗','装逼','打脸','热血男','后宫','玄幻','仙侠','都市','系统','穿越','无限流','诸天','赘婿','末世','科幻战斗','武侠','历史','军旅','谍战','搞笑爽剧']},
+        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','追妻火葬场','先婚后爱','古言权谋','仙侠言情','现言豪门','年代','种田','校园青春','无限流女强','宅斗','娱乐圈','职场大女主','双女主','灵异言情','治愈言情']}
       ],
       extraFields:[], stateKey:'shows' },
     book: { key:'book', label:'书架', labelSingle:'书籍', viewName:'books',
@@ -877,11 +1014,10 @@
       pField:'chaptersRead', tField:'totalChapters', pLabel:'已读', tLabel:'总章节', unit:'章',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#c8b8dd'],
       tagPresetGroups:[
-        {name:'评价', tags:['神作','年度最佳','治愈系','追更中','已弃','烂尾','佳作','口碑爆棚']},
-        {name:'题材', tags:['治愈','热血','搞笑','悬疑','科幻','奇幻','爱情','青春','文学','推理','武侠','仙侠','群像','黑暗','穿越','冒险','恐怖','散文']},
-        {name:'语言', tags:['中文','网文','日轻','欧美','翻译','原创','连载','完结']},
-        {name:'男频', tags:['爽文','后宫','逆袭','权谋','战斗','装逼','打脸','热血男','升级流']},
-        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','种田文']}
+        {name:'题材', tags:buildThemeTagList(THEME_SUBGROUPS_BOOK)},
+        {name:'语言', tags:['中文','网文','日轻','日系轻小说','欧美','翻译','原创','连载','完结','台版','韩漫','港版','英译中']},
+        {name:'男频', tags:['爽文','后宫','逆袭','权谋','战斗','装逼','打脸','热血男','升级流','玄幻','仙侠','凡人流','诡秘流','签到流','诸天','末世','种田基建','都市异能','历史争霸','军事','科幻机甲','网游','武侠','洪荒','恐怖灵异','搞笑','系统','赘婿','重生','穿越']},
+        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','种田文','团宠','重生复仇','快穿','穿书','年代文','末世基建','仙侠言情','奇幻言情','宅斗','娱乐圈','豪门总裁','校园青春','无限流大女主','悬疑推理','治愈','双女主','追妻火葬场','先婚后爱','古言权谋','灵异言情']}
       ],
       extraFields:[{key:'author',label:'作者',placeholder:'作者（可选）'}], stateKey:'books' }
   };
@@ -968,8 +1104,44 @@
   const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1},
              book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
-      customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
+      customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[],
+      editingReviewGrade='', editingReviewTags=[], editingReviewNote='', editingReviewSource='',
+      starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
+
+  // ============ 条目字段规整（统一真相源 + 数据迁移） ============
+  function normalizeItem(m, it){
+    if(!it) return it;
+    const mk = m.key;
+    const rating = parseInt(it.rating)||0;
+    // 1. 从 tags 剥离旧评价词 -> reviewTags
+    const oldSet = OLD_REVIEW_TAG_SET;
+    if(Array.isArray(it.tags)){
+      const keptTags = [];
+      it.tags.forEach(t=>{ if(oldSet.has(t)){ if(!Array.isArray(it.reviewTags)) it.reviewTags=[]; if(!it.reviewTags.includes(t)) it.reviewTags.push(t); } else keptTags.push(t); });
+      it.tags = keptTags;
+    }
+    // 2. 星级 -> reviewGrade（仅当无 grade 时首次迁移）
+    if(!it.reviewGrade && rating>=1 && rating<=5){
+      const map = {5:'S',4:'A',3:'B',2:'C',1:'D'};
+      it.reviewGrade = map[rating] || '';
+      it.reviewSource = it.reviewSource || 'auto';
+    }
+    // 3. 缺省值
+    if(!it.reviewGrade || typeof it.reviewGrade!=='string') it.reviewGrade = '';
+    if(!Array.isArray(it.reviewTags)) it.reviewTags = [];
+    else it.reviewTags = it.reviewTags.filter(t=>typeof t==='string' && t.trim());
+    if(!it.reviewSource || !['ai','manual','auto',''].includes(it.reviewSource)) it.reviewSource = '';
+    if(typeof it.reviewNote!=='string') it.reviewNote = '';
+    else if(it.reviewNote.length>200) it.reviewNote = it.reviewNote.slice(0,200);
+    return it;
+  }
+  function normalizeAllItems(){
+    ['show','book'].forEach(k=>{
+      const m = MODULES[k];
+      (data[m.stateKey]||[]).forEach(it=>normalizeItem(m,it));
+    });
+  }
 
   // ============ 工具 ============
   const $ = id => document.getElementById(id);
@@ -1327,6 +1499,9 @@
     $('loginModal').classList.add('hidden');
     $('appShell').classList.remove('hidden');
     Object.values(MODULES).forEach(m=>loadItems(m));
+    normalizeAllItems(); // 迁移：旧评价词 -> 独立评价字段；星级 -> 评级
+    // 写回一次以保存迁移结果（仅当本用户数据有变）
+    Object.values(MODULES).forEach(m=>saveItems(m));
     loadProfile(); loadRecords(); loadApps(); loadAppOverrides(); loadAppOrder();
     renderMiniProfile();
     renderAIShortcuts();
@@ -1343,7 +1518,12 @@
 
   // ============ 数据加载 ============
   function loadItems(m){ try{ data[m.stateKey]=JSON.parse(localStorage.getItem(m.storageKey(currentUser))||'[]'); }catch(e){ data[m.stateKey]=[]; } }
-  function saveItems(m){ localStorage.setItem(m.storageKey(currentUser), JSON.stringify(itemsOf(m))); refreshModule(m); }
+  function saveItems(m){
+    // 保存前再做一次规整（防止外部直接改 data 对象绕过）
+    try{ (data[m.stateKey]||[]).forEach(it=>normalizeItem(m,it)); }catch(_){}
+    localStorage.setItem(m.storageKey(currentUser), JSON.stringify(itemsOf(m)));
+    refreshModule(m);
+  }
   function refreshModule(m){ if(activeView===m.viewName){ renderFilterTabs(m); renderStats(m); renderTagFilters(m); renderGrid(m); } }
   function loadProfile(){ try{ profile=JSON.parse(localStorage.getItem(userProfileKey())||'{}'); }catch(e){ profile={}; } if(!profile.name) profile.name=currentName||currentUser||'用户'; }
   function saveProfile(){ localStorage.setItem(userProfileKey(), JSON.stringify(profile)); }
@@ -1540,33 +1720,29 @@
     const n=getReplayCount(it);
     return `<span class="text-[11px] px-2 py-0.5 rounded-full badge-replay" title="累计：${n+1} 次 · ${t}">${t}</span>`;
   }
-  function replayHistoryPreview(it, limit=3){
-    if(!it || !Array.isArray(it.replays) || !it.replays.length) return '';
-    const slice=it.replays.slice(-limit).reverse(); // 最新在前
-    return slice.map(r=>{
-      const d=new Date(r.at||0);
-      const timeStr = isNaN(d)? '-' : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      return `<span class="text-xs text-muted-c">↻ ${timeStr}${r.note?` · ${escapeHtml(r.note)}`:''}</span>`;
-    }).join(' &nbsp; ');
+  // ============ 评价评级/评价词辅助展示 ============
+  function gradeBadge(it, size=''){
+    const g = REVIEW_GRADE_MAP[it && it.reviewGrade];
+    if(!g) return '';
+    const sz = size==='sm' ? 'sm' : size==='lg' ? 'lg' : '';
+    const cls = 'badge-grade ' + sz + ' badge-grade-' + g.k;
+    return `<span class="${cls}" title="${g.title}" style="background:${g.bg};color:${g.fg}">${g.k}</span>`;
   }
-  function addReplay(mKey, id, note){
-    const m=MODULES[mKey]; const it=itemsOf(m).find(x=>x.id===id); if(!it) return false;
-    it.replayCount = getReplayCount(it)+1;
-    it.replays = Array.isArray(it.replays) ? it.replays : [];
-    it.replays.push({ at:Date.now(), note:(note||'').toString().trim() });
-    // 保留最近 50 条防膨胀
-    if(it.replays.length>50) it.replays.splice(0, it.replays.length-50);
-    saveItems(m);
-    return true;
+  function reviewSourceIcon(src){
+    if(src==='ai') return `<span class="review-source-icon" title="AI 总结">🤖</span>`;
+    if(src==='manual') return `<span class="review-source-icon" title="手动">✍️</span>`;
+    if(src==='auto') return `<span class="review-source-icon" title="自动迁移">⚡</span>`;
+    return '';
   }
-  function undoReplay(mKey, id){
-    const m=MODULES[mKey]; const it=itemsOf(m).find(x=>x.id===id); if(!it) return false;
-    const n=getReplayCount(it); if(n<=0) return false;
-    it.replayCount = n-1;
-    if(it.replayCount<=0) delete it.replayCount;
-    if(Array.isArray(it.replays)){ it.replays.pop(); if(!it.replays.length) delete it.replays; }
-    saveItems(m);
-    return true;
+  function reviewTagsChips(it, limit){
+    if(!it || !Array.isArray(it.reviewTags) || !it.reviewTags.length) return '';
+    const list = limit>0 ? it.reviewTags.slice(0, limit) : it.reviewTags;
+    return list.map(t=>{
+      const tone = classifyReviewTagTone(t);
+      const toneAttr = tone ? ` data-tone="${tone}"`:'';
+      const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
+      return `<span class="review-tag-chip"${toneAttr}>${emoji}${escapeHtml(t)}</span>`;
+    }).join('');
   }
   function cardHTML(m,it){
     const fallback=`<div class="w-full aspect-[2/3] rounded-xl soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-3xl"></i></div>`;
@@ -1575,19 +1751,23 @@
     let extra='';
     m.extraFields.forEach(f=>{ if(it[f.key]) extra += (extra?' · ':'') + escapeHtml(it[f.key]); });
     const tags=(it.tags&&it.tags.length)?`<div class="flex flex-wrap gap-1 mt-1">${it.tags.map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+    const reviewTagRow = (it.reviewTags&&it.reviewTags.length)?`<div class="flex flex-wrap gap-1 mt-1">${reviewTagsChips(it, 5)}</div>`:'';
     const isManual = ui[m.key].sort==='manual';
     const dragAttrs = isManual
       ? ` draggable="true" ondragstart="onCardDragStart(event,'${it.id}')" ondragend="onCardDragEnd(event)" ondragover="onCardDragOver(event)" ondrop="onCardDrop(event,'${m.key}','${it.id}')" ondragenter="onCardDragEnter(event)" ondragleave="onCardDragLeave(event)"`
       : '';
     const dragHint = isManual ? ' title="拖拽以调整顺序"' : '';
     const rBadge=replayBadge(m,it);
-    const cornerBadges=`<div class="absolute top-2 right-2 flex flex-col gap-1 items-end">${statusBadge(m,it.status)}${rBadge}</div>`;
+    const gBadge=gradeBadge(it,'sm');
+    const topLeft = gBadge ? `<div class="absolute top-2 left-2 z-[1]">${gBadge}</div>` : '';
+    const cornerBadges=`<div class="absolute top-2 right-2 flex flex-col gap-1 items-end z-[1]">${statusBadge(m,it.status)}${rBadge}</div>`;
     return `<div class="card-ins card-hover overflow-hidden cursor-pointer${isManual?' card-drag-mode':''}"${dragAttrs}${dragHint} data-card-id="${it.id}" onclick="openDetail('${m.key}','${it.id}')">
-      <div class="p-2.5 sm:p-3"><div class="relative">${img}${cornerBadges}${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
+      <div class="p-2.5 sm:p-3"><div class="relative">${img}${topLeft}${cornerBadges}${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white z-[1]"><i class="fa fa-arrows"></i></div>':''}</div>
       <div class="mt-3"><h3 class="font-medium text-[14px] sm:text-sm leading-snug text-balance" style="word-break:break-word">${escapeHtml(it.title)}</h3>
       <div class="text-[11px] sm:text-xs text-muted-c mt-1">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+extra:''}</div>
       <div class="text-[11px] sm:text-xs mt-1">${starStr(it.rating||0)}</div>
-      ${tags}</div></div></div>`;
+      ${tags}
+      ${reviewTagRow}</div></div></div>`;
   }
   // 网格卡片拖拽（自主拖拽排序模式）
   let dragCardId=null, dragCardEl=null;
@@ -1759,15 +1939,17 @@
   // 根据屏幕尺寸估算每页数量：cols * ~4 行（与 CSS 媒体查询列数保持一致）
   function gridPageSize(){
     const w=window.innerWidth;
-    const isLandscape = (window.innerWidth>window.innerHeight) || document.documentElement.classList.contains('landscape');
-    // 与 CSS 响应式列数对齐：手机竖屏2 / 手机横屏4 / 平板竖3横4 / 电脑竖3横4 / 大宽屏5
+    const h=window.innerHeight;
+    const isLandscape = (w>h) || document.documentElement.classList.contains('landscape');
+    // 与 CSS 响应式列数对齐：手机竖2 / 手机横3 / 平板竖3横4 / 电脑竖4横4 / ≥1280横5 / ≥1600横6
     let cols;
-    if(w>=1280 && isLandscape) cols=5;
-    else if(w>=1024 && isLandscape) cols=4;
-    else if(w>=1024) cols=3;
+    if(w>=1600 && isLandscape) cols=6;
+    else if(w>=1280 && isLandscape) cols=5;
+    else if(w>=1600) cols=4;
+    else if(w>=1024) cols=4;
     else if(w>=768 && isLandscape) cols=4;
     else if(w>=768) cols=3;
-    else if(isLandscape) cols=4;
+    else if(isLandscape) cols=3;  // 手机横屏：之前4列太挤→3
     else cols=2;
     return cols*4;
   }
@@ -1989,13 +2171,76 @@
     const i=arr.indexOf(t);
     if(i>=0){ arr.splice(i,1); saveUserTags(mk, arr); }
   }
+  // 我的评价关键词库（独立持久化，与普通标签库分开）
+  function userReviewTagsKey(mk){ return 'msl_user_review_tags_'+mk+'_'+(currentUser||'guest'); }
+  function loadUserReviewTags(mk){ try{ return JSON.parse(localStorage.getItem(userReviewTagsKey(mk))||'[]'); }catch(e){ return []; } }
+  function saveUserReviewTags(mk, arr){ localStorage.setItem(userReviewTagsKey(mk), JSON.stringify(arr)); }
+  function getUserReviewTags(mk){ if(!ui[mk].userReviewTags) ui[mk].userReviewTags=loadUserReviewTags(mk); return ui[mk].userReviewTags; }
+  function addUserReviewTagToLibrary(mk, t){
+    if(!t) return;
+    const arr=getUserReviewTags(mk);
+    if(!arr.includes(t)){ arr.push(t); saveUserReviewTags(mk, arr); }
+  }
+  function deleteUserReviewTagFromLibrary(mk, t){
+    const arr=getUserReviewTags(mk);
+    const i=arr.indexOf(t);
+    if(i>=0){ arr.splice(i,1); saveUserReviewTags(mk, arr); }
+  }
+  function classifyReviewTagTone(t){
+    const posSet = new Set(['神作','强推','必看','佳作','佳作可期','后劲大','年度最佳','冷门佳作','治愈神番','节奏好','剧情在线','人设完美','泪目','意难平','二刷预定','值得N刷','神仙打架','文笔佳','世界观宏大','人物立体','爽点密集','HE','治愈系','口碑爆棚']);
+    const negSet = new Set(['可看但不推','高开低走','前紧后松','节奏慢','水剧情','逻辑渣','剧情拉垮','工业糖精','玛丽苏','老套','烂尾','翻车','已弃','无脑爽','狗血','套路老','灌水','冗长','掉书袋','BE','追更中','中规中矩']);
+    if(posSet.has(t)) return 'pos';
+    if(negSet.has(t)) return 'neg';
+    return '';
+  }
   function renderTagPresets(){
     const wrap=$('tagPresetList'); if(!wrap) return;
     const m=MODULES[editingModuleKey];
     const groups=(m && m.tagPresetGroups)||[];
     const myTags=getUserTags(editingModuleKey);
+    const subgroup = m.key==='show' ? THEME_SUBGROUPS_SHOW : THEME_SUBGROUPS_BOOK;
     // 分类预设
     const groupHTML=groups.map(g=>{
+      if(g.name==='题材'){
+        // 二级分组+折叠
+        const buckets = Object.fromEntries(subgroup.map(sg=>[sg.name,[]]));
+        const others = [];
+        g.tags.forEach(t=>{
+          let placed=false;
+          for(const sg of subgroup){ if(sg.tags.includes(t)){ buckets[sg.name].push(t); placed=true; break; } }
+          if(!placed) others.push(t);
+        });
+        // 加入用户自定义标签里的"题材类"也归其他：不在任何预设池里、不在评价词里
+        myTags.forEach(t=>{
+          // 仅当 t 不是预置 tagPool 中其他组已收录的词（即用户新造的题材词），也不是旧评价词，则加进其他
+          if(g.tags.includes(t)) return;
+          if(OLD_REVIEW_TAG_SET.has(t)) return;
+          // 若其他组已经有（语言/男女频）也跳过
+          let belongOther=false;
+          for(const gg of groups){
+            if(gg.name==='题材') continue;
+            if(gg.tags.includes(t)){ belongOther=true; break; }
+          }
+          if(!belongOther && !others.includes(t)) others.push(t);
+        });
+        const sgHTML = subgroup.map(sg=>{
+          const tags = buckets[sg.name] || [];
+          if(!tags.length && !(sg.name==='其他' && others.length)) return '';
+          const chips = tags.map(t=>{
+            const on=editingTags.includes(t);
+            return `<button type="button" onclick="toggleTagPreset(${JSON.stringify(t).replace(/"/g,'&quot;')})" class="tag-chip ${on?'active':''}">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+          }).join('');
+          return `<details class="theme-subgroup" ${sg.open?'open':''}><summary>${escapeHtml(sg.name)}<span class="sg-count">${tags.length}</span></summary><div class="flex flex-wrap gap-1.5">${chips}</div></details>`;
+        }).filter(Boolean).join('');
+        const othersHTML = others.length ? (()=>{
+          const chips = others.map(t=>{
+            const on=editingTags.includes(t);
+            return `<button type="button" onclick="toggleTagPreset(${JSON.stringify(t).replace(/"/g,'&quot;')})" class="tag-chip ${on?'active':''}">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+          }).join('');
+          return `<details class="theme-subgroup"><summary>其他<span class="sg-count">${others.length}</span></summary><div class="flex flex-wrap gap-1.5">${chips}</div></details>`;
+        })() : '';
+        return `<div class="flex items-start gap-2"><span class="text-xs text-muted-c shrink-0 pt-1 w-12">${escapeHtml(g.name)}</span><div class="flex-1 theme-subgroups">${sgHTML}${othersHTML}</div></div>`;
+      }
       const chips=g.tags.map(t=>{
         const on=editingTags.includes(t);
         return `<button type="button" onclick="toggleTagPreset(${JSON.stringify(t).replace(/"/g,'&quot;')})" class="tag-chip ${on?'active':''}">${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
@@ -2018,7 +2263,7 @@
     if(i>=0) editingTags.splice(i,1); else editingTags.push(t);
     renderTagList();
   }
-  // 「+标签」按钮：取输入框内容，为空则弹窗输入，添加后清空输入框；同时存入我的标签库
+  // 「+标签」按钮：取输入框内容，为空则弹窗输入；若为评价词则自动加入评价区（不进普通标签）
   function addTagFromInput(){
     const inp=$('fldTagInput');
     let v=(inp && inp.value||'').trim();
@@ -2028,9 +2273,22 @@
       v=p.trim();
       if(!v){ alert('标签不能为空'); return; }
     }
+    // 自动识别为评价词 → 改加到 editingReviewTags
+    if(OLD_REVIEW_TAG_SET.has(v) || REVIEW_TAG_PRESETS_SHOW.includes(v) || REVIEW_TAG_PRESETS_BOOK.includes(v)){
+      if(!editingReviewTags.includes(v)){
+        editingReviewTags.push(v);
+        addUserReviewTagToLibrary(editingModuleKey, v);
+        if(!editingReviewSource) editingReviewSource='manual';
+        showToast('✨ 已识别为评价词，已加入评价区', {pos:'upper', style:'accent', duration:1400});
+      } else {
+        showToast('该评价词已添加', {pos:'upper', duration:1000});
+      }
+      renderReviewUI();
+      if(inp){ inp.value=''; inp.focus(); }
+      return;
+    }
     if(!editingTags.includes(v)){ editingTags.push(v); }
     else { alert('该标签已添加'); }
-    // 存入我的标签库（后续可复用）
     addUserTagToLibrary(editingModuleKey, v);
     renderTagList();
     if(inp) inp.value='';
@@ -2051,6 +2309,193 @@
     renderTagList();
   }
   function removeTag(i){ editingTags.splice(i,1); renderTagList(); }
+
+  // ============ 评价区 UI 渲染 ============
+  function renderReviewUI(){
+    const wrap=$('reviewSection'); if(!wrap) return;
+    const mk = editingModuleKey;
+    const presets = mk==='book' ? REVIEW_TAG_PRESETS_BOOK : REVIEW_TAG_PRESETS_SHOW;
+    const myRev = getUserReviewTags(mk);
+    // 合并所有 presets + 我的评价词，去重
+    const pool = [...presets];
+    myRev.forEach(t=>{ if(!pool.includes(t)) pool.push(t); });
+    // 圆徽章评级
+    const gradeHTML = REVIEW_GRADES.map(g=>{
+      const active = editingReviewGrade===g.k;
+      return `<button type="button" onclick="setReviewGrade('${g.k}')" title="${g.title}"
+        class="rg-btn badge-grade-${g.k} ${active?'active':''}" style="background:${g.bg}">${g.k}</button>`;
+    }).join('');
+    // 评价词 chip 池（预置 + 我的）
+    const chipHTML = pool.map(t=>{
+      const on = editingReviewTags.includes(t);
+      const tone = classifyReviewTagTone(t);
+      const toneAttr = tone ? ` data-tone="${tone}"`:'';
+      const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
+      const j=JSON.stringify(t).replace(/"/g,'&quot;');
+      const longPressHandlers = myRev.includes(t)
+        ? ` oncontextmenu="onUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}'); return false" ontouchstart="startUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}')" ontouchend="clearUserReviewTagLongPress()" ontouchmove="clearUserReviewTagLongPress()" ontouchcancel="clearUserReviewTagLongPress()" `
+        : '';
+      return `<button type="button" class="review-tag-chip"${toneAttr} onclick="toggleReviewPreset(${j})"${longPressHandlers} title="${myRev.includes(t)?'点击添加 / 长按从我的评价词库删除':'点击添加'}">${emoji}${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+    }).join('');
+    // 已选 reviewTags 列表
+    const selectedHTML = editingReviewTags.length
+      ? editingReviewTags.map((t,i)=>{
+          const tone = classifyReviewTagTone(t);
+          const toneAttr = tone ? ` data-tone="${tone}"`:'';
+          const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
+          return `<span class="review-tag-chip"${toneAttr}>${emoji}${escapeHtml(t)} <i class="fa fa-times ml-1" onclick="removeReviewTag(${i})" style="cursor:pointer"></i></span>`;
+        }).join('')
+      : '<span class="text-xs text-muted-c">暂无评价词</span>';
+    // AI 配置状态
+    const cfg = getAIConfig();
+    const hasAI = !!cfg.apiKey;
+    const modelDisp = (cfg.model || (cfg.provider==='gemini'?AI_DEFAULT_MODELS.gemini:AI_DEFAULT_MODELS.openai)) + ' · ' + (cfg.provider==='gemini'?'Gemini':'OpenAI');
+    const reviewHint = editingReviewSource==='ai'
+      ? `<span class="text-xs text-muted-c"><i class="fa fa-refresh mr-1"></i>已用 AI 总结，可重新生成 · 使用模型：${modelDisp}</span>`
+      : `<span class="text-xs text-muted-c">可基于标题/类型/评分/笔记让 AI 生成评价，也可手动点选。${hasAI?'使用模型：'+modelDisp:'未配置 AI，请先到 设置 → AI 智能识别 配置 API Key 后使用。'}</span>`;
+    wrap.innerHTML = `
+      <div>
+        <label class="text-sm block mb-2">综合评价评级 <span class="text-xs text-muted-c ml-1">（S 力荐 / A 推荐 / B 可看 / C 一般 / D 较差 / F 避雷）</span></label>
+        <div class="review-grade-picker mb-2">${gradeHTML}</div>
+      </div>
+      <div>
+        <label class="text-sm block mb-2">评价关键词</label>
+        <div class="flex flex-wrap gap-1.5 mb-2">${chipHTML}</div>
+        <div id="selectedReviewTags" class="flex flex-wrap gap-1.5 mb-2">${selectedHTML}</div>
+        <div class="flex gap-2 items-center mb-1">
+          <input id="fldReviewTagInput" class="input-ins flex-1 px-4 py-2" placeholder="自定义评价词（回车添加，如：高开低走）"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); addReviewTagFromInput(); }">
+          <button type="button" onclick="addReviewTagFromInput()" class="btn-outline px-3 py-2 text-sm whitespace-nowrap">+ 评价词</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm block mb-2">一句话点评 <span class="text-xs text-muted-c">（≤100 字）</span></label>
+        <textarea id="fldReviewNote" rows="2" class="input-ins w-full px-4 py-2" maxlength="120" placeholder="如：节奏把控出色，后半段剧情张力拉满...">${escapeHtml(editingReviewNote||'')}</textarea>
+      </div>
+      <div class="mt-3 p-3 rounded-xl soft-bg-50">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="aiGenerateReview()" class="btn-soft px-4 py-2 text-sm" ${hasAI?'':'disabled style="opacity:.45;cursor:not-allowed"'}>
+            <i class="fa fa-magic mr-1"></i>${hasAI?'AI 总结评价':'AI 未配置（去设置 → AI 智能识别）'}
+          </button>
+          <button type="button" onclick="clearReview()" class="btn-outline px-3 py-2 text-sm">清空评价</button>
+        </div>
+        <div class="mt-2">${reviewHint}</div>
+      </div>`;
+  }
+  function setReviewGrade(k){
+    editingReviewGrade = (editingReviewGrade===k) ? '' : k;
+    if(!editingReviewSource) editingReviewSource='manual';
+    renderReviewUI();
+  }
+  function toggleReviewPreset(t){
+    const i = editingReviewTags.indexOf(t);
+    if(i>=0) editingReviewTags.splice(i,1); else editingReviewTags.push(t);
+    addUserReviewTagToLibrary(editingModuleKey, t);
+    if(!editingReviewSource) editingReviewSource='manual';
+    renderReviewUI();
+  }
+  function removeReviewTag(i){ editingReviewTags.splice(i,1); renderReviewUI(); }
+  function addReviewTagFromInput(){
+    const inp=$('fldReviewTagInput');
+    let v=(inp && inp.value||'').trim();
+    if(!v){ showToast('请输入评价词', {pos:'upper', style:'warn', duration:1000}); return; }
+    if(editingReviewTags.includes(v)){ showToast('该评价词已添加', {pos:'upper', duration:900}); return; }
+    editingReviewTags.push(v);
+    addUserReviewTagToLibrary(editingModuleKey, v);
+    if(!editingReviewSource) editingReviewSource='manual';
+    renderReviewUI();
+    if(inp){ inp.value=''; inp.focus(); }
+  }
+  function clearReview(){
+    if(!editingReviewGrade && !editingReviewTags.length && !editingReviewNote) return;
+    if(!confirm('清空综合评价评级/关键词/点评？')) return;
+    editingReviewGrade=''; editingReviewTags=[]; editingReviewNote=''; editingReviewSource='';
+    renderReviewUI();
+  }
+  let userReviewTagLongPressTimer=null;
+  function startUserReviewTagLongPress(e, jTag){
+    clearUserReviewTagLongPress();
+    userReviewTagLongPressTimer=setTimeout(()=>{ userReviewTagLongPressTimer=null; confirmDeleteUserReviewTag(jTag); }, 550);
+  }
+  function clearUserReviewTagLongPress(){ if(userReviewTagLongPressTimer){ clearTimeout(userReviewTagLongPressTimer); userReviewTagLongPressTimer=null; } }
+  function onUserReviewTagLongPress(e, jTag){ e.preventDefault(); confirmDeleteUserReviewTag(jTag); }
+  function confirmDeleteUserReviewTag(jTag){
+    let t; try{ t=JSON.parse(jTag); }catch(e){ return; }
+    if(!confirm('从「我的评价词库」删除「'+t+'」？\n（已添加到条目的评价词不受影响）')) return;
+    deleteUserReviewTagFromLibrary(editingModuleKey, t);
+    renderReviewUI();
+  }
+  async function aiGenerateReview(){
+    const m = MODULES[editingModuleKey];
+    const title = ($('fldTitle')?.value||'').trim();
+    if(!title){ showToast('请先填写标题', {pos:'upper', style:'warn'}); return; }
+    const cfg = getAIConfig();
+    if(!cfg.apiKey){ showToast('未配置 AI API Key', {pos:'upper', style:'warn'}); return; }
+    const type = $('fldType')?.value || m.defaultType;
+    const typeLabel = m.types[type] || m.types[m.defaultType] || '';
+    const rating = starValue;
+    const tagsStr = (editingTags||[]).join('、');
+    const note = ($('fldNote')?.value||'').slice(0,200);
+    const prompt = `请基于以下${m.labelSingle}信息，综合判断并严格只返回一个 JSON（不要 markdown，不要解释）：
+字段：{reviewGrade (string 枚举：S/A/B/C/D/F，仅大写字母), reviewTags (string 数组，3~5 个评价关键词，中文，不要重复), reviewNote (string 一句话点评 ≤30 字)}
+信息：
+- 标题：${title}
+- 类型：${typeLabel}
+- 用户评分(1~5星)：${rating||0}
+- 标签：${tagsStr||'(无)'}
+- 笔记：${note||'(无)'}`;
+    const btn = document.querySelectorAll('#reviewSection button[onclick*="aiGenerateReview"]')[0];
+    const oldHTML = btn ? btn.innerHTML : '';
+    if(btn){ btn.innerHTML='<i class="fa fa-spinner fa-spin mr-1"></i>生成中...'; btn.disabled=true; }
+    try{
+      let text='';
+      if(cfg.provider==='openai'){
+        const model=cfg.model||AI_DEFAULT_MODELS.openai;
+        const res=await fetch('https://api.openai.com/v1/chat/completions',{
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+          body:JSON.stringify({model, messages:[{role:'user', content:prompt}], response_format:{type:'json_object'}, temperature:.3})
+        });
+        if(!res.ok) throw new Error('AI 调用失败：'+res.status);
+        const j=await res.json(); text=j.choices?.[0]?.message?.content||'';
+      } else {
+        const model=cfg.model||AI_DEFAULT_MODELS.gemini;
+        const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(cfg.apiKey),{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ contents:[{ parts:[ {text:prompt} ] }], generationConfig:{temperature:.3,response_mime_type:'application/json'} })
+        });
+        if(!res.ok) throw new Error('AI 调用失败：'+res.status);
+        const j=await res.json(); text=j.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      }
+      // parse
+      const parsed = parseAIResult(text);
+      const raw = parsed.raw ? (parsed[Object.keys(parsed).find(k=>k!=='raw')] ?? parsed.raw) : null;
+      let obj = {};
+      try{
+        if(raw && typeof raw==='object') obj = raw;
+        else if(parsed && typeof parsed==='object') obj = parsed;
+      }catch(_){}
+      const grade = (obj.reviewGrade && typeof obj.reviewGrade==='string' && REVIEW_GRADE_MAP[obj.reviewGrade.toUpperCase()]) ? obj.reviewGrade.toUpperCase() : '';
+      let tags = [];
+      if(Array.isArray(obj.reviewTags)){
+        obj.reviewTags.forEach(t=>{ if(typeof t==='string'){ const x=t.trim().slice(0,20); if(x && !tags.includes(x)) tags.push(x); } });
+      }
+      const note = (typeof obj.reviewNote==='string') ? obj.reviewNote.slice(0,120) : '';
+      if(!grade && !tags.length && !note){
+        throw new Error('AI 返回无法解析，请重试');
+      }
+      editingReviewGrade = grade || editingReviewGrade;
+      tags.forEach(t=>{ if(!editingReviewTags.includes(t)) editingReviewTags.push(t); });
+      editingReviewTags = editingReviewTags.slice(0, 10);
+      editingReviewNote = note || editingReviewNote;
+      editingReviewSource = 'ai';
+      renderReviewUI();
+      showToast('✨ AI 总结已应用' + (grade?' · 评级'+grade:''), {pos:'upper', style:'accent', duration:1800});
+    }catch(err){
+      showToast('AI 总结失败：'+(err.message||String(err)).slice(0,60), {pos:'upper', style:'warn', duration:2200});
+    } finally {
+      if(btn){ btn.innerHTML = oldHTML; btn.disabled=false; }
+    }
+  }
   function switchImgSrc(mode){
     const localActive=mode==='local', libActive=mode==='lib';
     $('srcLocalBtn').className='px-3 py-1.5 text-sm '+(localActive?'btn-soft':'btn-outline');
@@ -2068,6 +2513,7 @@
   function openItemModal(key, id){
     const m=MODULES[key];
     editingModuleKey=key; editingTags=[]; starValue=0;
+    editingReviewGrade=''; editingReviewTags=[]; editingReviewNote=''; editingReviewSource='';
     $('editModule').value=key;
     $('itemModalTitle').textContent = id?'编辑'+m.labelSingle:'添加'+m.labelSingle;
     $('fldType').innerHTML=Object.entries(m.types).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
@@ -2078,6 +2524,7 @@
     $('imgPrev').classList.add('hidden'); $('imgPrev').src=''; $('fldImg').value='';
     if(id){
       const it=itemsOf(m).find(x=>x.id===id); if(!it){ return; }
+      normalizeItem(m, it); // 确保字段规整 + 迁移过
       $('editId').value=it.id;
       $('fldTitle').value=it.title||'';
       m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=it[f.key]||''; });
@@ -2088,16 +2535,20 @@
       $('fldImg').value=it.img||'';
       $('fldNote').value=it.note||'';
       starValue=it.rating||0; editingTags=[...(it.tags||[])];
-      refreshStars(); renderTagList();
+      editingReviewGrade = it.reviewGrade || '';
+      editingReviewTags  = [...(it.reviewTags||[])];
+      editingReviewNote  = it.reviewNote || '';
+      editingReviewSource= it.reviewSource || '';
+      refreshStars(); renderTagList(); renderReviewUI();
       if(it.img){ $('imgPrev').src=it.img; $('imgPrev').classList.remove('hidden'); if(it.img.startsWith('data:')){ switchImgSrc('local'); $('fileHint').textContent='已上传图片'; } else { switchImgSrc('lib'); } }
     }else{
       $('editId').value='';
       $('fldTitle').value='';
       m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=''; });
-      ['fldProgress','fldTotal','fldNote','fldTagInput','fldImgFile'].forEach(i=>{const el=$(i); if(el) el.value='';});
+      ['fldProgress','fldTotal','fldNote','fldTagInput','fldImgFile','fldReviewTagInput','fldReviewNote'].forEach(i=>{const el=$(i); if(el) el.value='';});
       $('fldType').value=m.defaultType; $('fldStatus').value=m.defaultStatus;
       switchImgSrc('local'); $('fileHint').textContent='未选择';
-      refreshStars(); renderTagList();
+      refreshStars(); renderTagList(); renderReviewUI();
     }
     $('itemModal').classList.remove('hidden');
   }
@@ -2107,12 +2558,24 @@
     const title=$('fldTitle').value.trim();
     if(!title){ alert('请填写标题'); return; }
     const id=$('editId').value;
+    const note = ($('fldNote')?.value||'').trim();
+    // 如果用户点了 AI/手动加了 reviewTag/评级/评注，但没打星级 → 仍算来源=manual
+    const hasAnyReview = !!(editingReviewGrade || editingReviewTags.length || (editingReviewNote&&editingReviewNote.trim()));
+    const src = hasAnyReview ? (editingReviewSource || 'manual') : '';
     const d={ title, type:$('fldType').value, status:$('fldStatus').value,
-      rating:starValue, img:$('fldImg').value.trim(), tags:[...editingTags], note:$('fldNote').value.trim() };
+      rating:starValue, img:$('fldImg').value.trim(), tags:[...editingTags], note,
+      reviewGrade:editingReviewGrade||'', reviewTags:[...editingReviewTags],
+      reviewSource:src, reviewNote:($('fldReviewNote')?.value||'').trim() };
     d[m.pField]=parseInt($('fldProgress').value)||0;
     d[m.tField]=parseInt($('fldTotal').value)||0;
     m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) d[f.key]=el.value.trim(); });
-    if(id){ Object.assign(itemsOf(m).find(x=>x.id===id), d); }
+    // 若星级≥1 且无评级 → 自动映射（与 normalize 一致）
+    if(!d.reviewGrade && d.rating>=1 && d.rating<=5){
+      const map = {5:'S',4:'A',3:'B',2:'C',1:'D'};
+      d.reviewGrade = map[d.rating];
+      if(!d.reviewSource) d.reviewSource = 'auto';
+    }
+    if(id){ const target=itemsOf(m).find(x=>x.id===id); if(target) Object.assign(target, d); }
     else{ itemsOf(m).unshift({ id:uid(), createdAt:Date.now(), ...d }); }
     saveItems(m); closeItemModal();
   }
@@ -2161,6 +2624,23 @@
     const tagsHtml=(it.tags||[]).length?`<div class="flex flex-wrap gap-2 mt-3">${it.tags.map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
     const noteHtml=it.note?`<div class="mt-4 p-3 rounded-xl text-sm leading-relaxed soft-bg-50">${escapeHtml(it.note)}</div>`:'';
     const extraHtml=m.extraFields.map(f=>it[f.key]?`<div class="text-sm text-muted-c mt-2">${f.label}：${escapeHtml(it[f.key])}</div>`:'').join('');
+    // ============== 综合评价区块（独立视觉，和普通标签区分） ==============
+    const gBadge = gradeBadge(it,'lg');
+    const gradeInfo = REVIEW_GRADE_MAP[it.reviewGrade];
+    const reviewHeading = (gBadge || (it.reviewTags && it.reviewTags.length) || it.reviewNote) ? `
+      <div class="mt-4 p-3 rounded-xl" style="background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(251,146,60,.08)); border:1px solid rgba(168,85,247,.15);">
+        <div class="flex items-start gap-3 flex-wrap">
+          ${gBadge || ''}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-2">
+              <span class="font-medium">综合评价${gradeInfo?' · '+gradeInfo.title:''}</span>
+              ${reviewSourceIcon(it.reviewSource)}
+            </div>
+            ${(it.reviewTags&&it.reviewTags.length)?`<div class="flex flex-wrap gap-1.5 mb-2">${reviewTagsChips(it)}</div>`:''}
+            ${it.reviewNote?`<div class="text-sm leading-relaxed" style="color:var(--text)"><i class="fa fa-quote-left mr-1" style="color:var(--accent);opacity:.7"></i>${escapeHtml(it.reviewNote)}</div>`:''}
+          </div>
+        </div>
+      </div>` : '';
     // 重刷/重读区块
     const rBadge=replayBadge(m,it);
     const totalReplay=getReplayCount(it);
@@ -2185,10 +2665,16 @@
       <div class="grid md:grid-cols-3 gap-5">
         <div class="md:col-span-1">${img}</div>
         <div class="md:col-span-2">
-          <div class="flex items-center gap-2 flex-wrap mb-2"><h2 class="text-xl font-medium">${escapeHtml(it.title)}</h2>${statusBadge(m,it.status)}${rBadge?`&nbsp;${rBadge}`:''}</div>
+          <div class="flex items-center gap-2 flex-wrap mb-2">
+            <h2 class="text-xl font-medium">${escapeHtml(it.title)}</h2>
+            ${statusBadge(m,it.status)}
+            ${rBadge?`&nbsp;${rBadge}`:''}
+            ${gBadge}
+            ${reviewSourceIcon(it.reviewSource)}
+          </div>
           <div class="text-sm text-muted-c mb-3">${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
-          <div class="text-sm mb-3">${starStr(it.rating||0)}</div>
-          ${extraHtml}${tagsHtml}${noteHtml}
+          <div class="text-sm mb-3">${starStr(it.rating||0)}${gradeInfo?` <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="background:${gradeInfo.bg};color:${gradeInfo.fg}">${gradeInfo.title}</span>`:''}</div>
+          ${extraHtml}${tagsHtml}${reviewHeading}${noteHtml}
           ${replayBlock}
           <div class="flex gap-2 mt-6 flex-wrap">
             <button onclick="openItemModal('${m.key}','${it.id}')" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-pencil mr-1"></i>编辑</button>
@@ -2821,8 +3307,12 @@
       wrap.innerHTML=recent.map(it=>{
         const m=MODULES[it._k];
         const rb=replayBadge(m,it);
+        const gb=gradeBadge(it,'sm');
         return `<div class="card-ins card-hover cursor-pointer p-3 flex items-center gap-3" onclick="openDetail('${m.key}','${it.id}')">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:var(--soft);color:var(--accent)"><i class="fa ${m.key==='book'?'fa-book':'fa-film'}"></i></div>
+          <div class="relative w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:var(--soft);color:var(--accent)">
+            <i class="fa ${m.key==='book'?'fa-book':'fa-film'}"></i>
+            ${gb?`<div class="absolute -top-1 -left-1">${gb}</div>`:''}
+          </div>
           <div class="flex-1 min-w-0">
             <div class="text-sm font-medium truncate">${escapeHtml(it.title)}${rb?' <span class="ml-1 align-middle">'+rb+'</span>':''}</div>
             <div class="text-xs text-muted-c truncate">${m.label}${it.rating?' · '+starStr(it.rating):''}</div>
@@ -2837,25 +3327,34 @@
         const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
         const rb=replayBadge(m,it);
-        return `<div class="card-ins card-hover cursor-pointer overflow-hidden relative" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}${rb?`<div class="absolute top-1 right-1">${rb}</div>`:''}</div>`;
+        const gb=gradeBadge(it,'sm');
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden relative" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}
+          ${gb?`<div class="absolute top-1 left-1">${gb}</div>`:''}
+          ${rb?`<div class="absolute top-1 right-1">${rb}</div>`:''}</div>`;
       }).join('');
     } else if(style==='magazine'){
       wrap.className='grid grid-cols-1 sm:grid-cols-2 gap-3';
       wrap.innerHTML=recent.map((it,idx)=>{
         const m=MODULES[it._k];
         const rb=replayBadge(m,it);
+        const gb=gradeBadge(it,'sm');
+        const rtags = (it.reviewTags&&it.reviewTags.length)?`<div class="flex flex-wrap gap-1 mt-1">${reviewTagsChips(it,2)}</div>`:'';
         const fb=`<div class="w-24 h-32 rounded-lg soft-bg flex items-center justify-center text-muted-c shrink-0"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-24 h-32 object-cover rounded-lg shrink-0" onerror="this.outerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
         const lead = idx===0 ? 'sm:col-span-2' : '';
-        const bigImg = idx===0 && it.img ? `<img src="${it.img}" class="w-full h-40 sm:h-48 object-cover rounded-lg mb-2" onerror="this.style.display='none'">` : '';
+        const bigImg = idx===0 && it.img ? `<div class="relative mb-2">${gb?`<div class="absolute top-2 left-2">${gb}</div>`:''}<img src="${it.img}" class="w-full h-40 sm:h-48 object-cover rounded-lg" onerror="this.style.display='none'"></div>` : '';
         return `<div class="card-ins card-hover cursor-pointer p-3 ${lead}" onclick="openDetail('${m.key}','${it.id}')">
           ${bigImg}
           <div class="flex gap-3">
             ${idx===0?'':img}
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate">${escapeHtml(it.title)}${rb?' <span class="ml-1 align-middle">'+rb+'</span>':''}</div>
+              <div class="flex items-center gap-2">
+                ${idx===0?'':gb}
+                <div class="text-sm font-medium truncate">${escapeHtml(it.title)}${rb?' <span class="ml-1 align-middle">'+rb+'</span>':''}</div>
+              </div>
               <div class="text-xs text-muted-c">${m.label} · ${typeLabel(m,it.type)} · ${progressStr(m,it)}</div>
               ${it.rating?'<div class="text-xs mt-1">'+starStr(it.rating)+'</div>':''}
+              ${idx===0?rtags:''}
               ${it.note?'<div class="text-xs text-muted-c mt-1 line-clamp-2">'+escapeHtml(it.note)+'</div>':''}
             </div>
           </div>
@@ -2867,9 +3366,18 @@
       wrap.innerHTML=recent.map(it=>{
         const m=MODULES[it._k];
         const rb=replayBadge(m,it);
+        const gb=gradeBadge(it,'sm');
         const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-2xl"></i></div>`;
         const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
-        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2 relative">${img}${rb?`<div class="absolute top-3 right-3">${rb}</div>`:''}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')">
+          <div class="p-2 relative">
+            ${img}
+            ${gb?`<div class="absolute top-3 left-3">${gb}</div>`:''}
+            ${rb?`<div class="absolute top-3 right-3">${rb}</div>`:''}
+            <div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div>
+            <div class="text-xs text-muted-c">${m.label}</div>
+          </div>
+        </div>`;
       }).join('');
     }
   }
