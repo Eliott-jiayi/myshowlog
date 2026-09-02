@@ -114,8 +114,8 @@
       html.landscape #sidebarBackdrop{ display:none !important; }
       html.landscape main{ padding:0.5rem 0.75rem; }
       /* 横屏统计/网格更宽 */
-      html.landscape [id$="StatsWrap"]{ grid-template-columns:repeat(4,minmax(0,1fr)); }
-      html.landscape #showGrid, html.landscape #bookGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+      html.landscape [id$="StatsWrap"]{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+      html.landscape #showGrid, html.landscape #bookGrid{ grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
       /* 弹窗横屏紧凑 */
       html.landscape .modal-wrap > *{ margin-top:1rem; margin-bottom:1rem; }
     }
@@ -1236,9 +1236,13 @@
     const pwd=prompt('请输入当前账号密码以确认注销：');
     if(pwd===null) return;
     if(acc.pwd!==pwd){ alert('密码不正确，已取消注销'); return; }
-    // 1) 清理 localStorage 本机数据
-    [STORAGE_PROFILE+currentUser, STORAGE_APPS+currentUser, userAppOverridesKey(), 'msl_records_'+currentUser, MODULES.show.storageKey(currentUser), MODULES.book.storageKey(currentUser), avatarAuthKey()]
-      .forEach(k=>localStorage.removeItem(k));
+    // 1) 清理 localStorage 本机数据（含标签库、手动排序、应用顺序等所有账号相关键）
+    [STORAGE_PROFILE+currentUser, STORAGE_APPS+currentUser, userAppOverridesKey(), userAppOrderKey(),
+     'msl_records_'+currentUser, MODULES.show.storageKey(currentUser), MODULES.book.storageKey(currentUser),
+     avatarAuthKey(),
+     userTagsKey('show'), userTagsKey('book'),
+     manualOrderKey(MODULES.show), manualOrderKey(MODULES.book)
+    ].forEach(k=>localStorage.removeItem(k));
     // 2) 清理 IndexedDB 图库中该账号的图片
     try{
       const db=await openGalleryDB();
@@ -1253,9 +1257,16 @@
     localStorage.removeItem(STORAGE_SESSION);
     sessionStorage.removeItem('msl_pending_reg'); sessionStorage.removeItem('msl_pending_rcv');
     currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[]; appOverrides={}; appOrder=[];
-    ui.show.userTags=null; ui.show.manualOrder=null; ui.book.userTags=null; ui.book.manualOrder=null;
+    // 重置所有 UI 状态，避免被注销账号的筛选/排序/分页/图表状态残留到下个登录用户
+    ['show','book'].forEach(k=>{
+      ui[k].userTags=null; ui[k].manualOrder=null;
+      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null;
+      ui[k].showAll=false; ui[k].titleDir='asc'; ui[k].letterPage=1; ui[k].itemPage=1;
+      if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
+    });
     $('appShell').classList.add('hidden'); $('loginModal').classList.remove('hidden');
     $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
+    $('regCodeWrap')?.classList.add('hidden'); $('rcvCodeWrap')?.classList.add('hidden');
     alert('账号已注销，本机相关数据已删除。');
   }
   function doLogin(){
@@ -1279,7 +1290,13 @@
     if(!confirm('确定退出登录？')) return;
     localStorage.removeItem(STORAGE_SESSION);
     currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[]; appOverrides={}; appOrder=[];
-    ui.show.userTags=null; ui.show.manualOrder=null; ui.book.userTags=null; ui.book.manualOrder=null;
+    // 重置所有 UI 状态，避免上次用户的分页/筛选/排序状态残留
+    ['show','book'].forEach(k=>{
+      ui[k].userTags=null; ui[k].manualOrder=null;
+      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null;
+      ui[k].showAll=false; ui[k].titleDir='asc'; ui[k].letterPage=1; ui[k].itemPage=1;
+      if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
+    });
     $('appShell').classList.add('hidden');
     $('loginModal').classList.remove('hidden');
     $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
@@ -1292,6 +1309,8 @@
     loadProfile(); loadRecords(); loadApps(); loadAppOverrides(); loadAppOrder();
     renderMiniProfile();
     renderAIShortcuts();
+    renderAppShortcuts(); // 登录后渲染侧边栏应用快捷（含自定义应用与排序）
+    buildAppDatalist();   // 构建记录本应用下拉列表
     switchView('home');
     // 登录后处理待导入的分享链接
     const pending = sessionStorage.getItem('msl_pending_share');
@@ -1494,7 +1513,7 @@
     return `<div class="card-ins card-hover overflow-hidden cursor-pointer${isManual?' card-drag-mode':''}"${dragAttrs}${dragHint} data-card-id="${it.id}" onclick="openDetail('${m.key}','${it.id}')">
       <div class="p-2.5 sm:p-3"><div class="relative">${img}<div class="absolute top-2 right-2">${statusBadge(m,it.status)}</div>${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
       <div class="mt-3"><h3 class="font-medium text-[14px] sm:text-sm leading-snug text-balance" style="word-break:break-word">${escapeHtml(it.title)}</h3>
-      <div class="text-[11px] sm:text-xs text-muted-c mt-1">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+escapeHtml(extra):''}</div>
+      <div class="text-[11px] sm:text-xs text-muted-c mt-1">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+extra:''}</div>
       <div class="text-[11px] sm:text-xs mt-1">${starStr(it.rating||0)}</div>
       ${tags}</div></div></div>`;
   }
@@ -1586,15 +1605,16 @@
       .replace(/\s*[\s\-]\d{1,2}\s*$/,'')
       // 仅移除「位于尾部」的罗马数字（三体Ⅱ → 三体），不移除后跟副标题的情况（三体Ⅱ 黑暗森林 保留 Ⅱ，利用 Ⅱ<Ⅲ Unicode 保证系列正序）
       // 允许后面跟 书名号右/括号/中文句号等 末尾标点
-      .replace(/\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]+\s*(?=[》）)\]】。，,；;\s]*$/g, '')
+      .replace(/\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]+\s*(?=[》）)\]】。，,；;\s]*$)/g, '')
       .trim();
   }
   function sortItems(m,list){
     const arr=[...list], s=ui[m.key].sort;
+    // titleDir 仅用于 title 排序（首字母正倒序），不影响 recent/rating/progress 排序
     const dir = ui[m.key].titleDir==='desc' ? -1 : 1;
-    if(s==='recent') arr.sort((a,b)=>dir*((b.createdAt||0)-(a.createdAt||0)));
-    else if(s==='rating') arr.sort((a,b)=>dir*((b.rating||0)-(a.rating||0)));
-    else if(s==='progress') arr.sort((a,b)=>dir*(progressPct(m,b)-progressPct(m,a)));
+    if(s==='recent') arr.sort((a,b)=>((b.createdAt||0)-(a.createdAt||0)));
+    else if(s==='rating') arr.sort((a,b)=>((b.rating||0)-(a.rating||0)));
+    else if(s==='progress') arr.sort((a,b)=>(progressPct(m,b)-progressPct(m,a)));
     else if(s==='title'){
       arr.sort((a,b)=>{
         const na=normalizeTitle(a.title||''), nb=normalizeTitle(b.title||'');
@@ -1630,8 +1650,7 @@
     // 中文：取 Intl 分组名（简体中文拼音排序首字母），回退 #
     try{
       const segments = new Intl.Collator('zh-Hans-CN',{usage:'sort',sensitivity:'base'});
-      const letters='ABCDEFGHJKLMNOPQRSTWXYZ';
-      // 二分/顺序取：比较 c 与「阿玻次的鹅佛哥喝衣鸡棵了摸呢喔坡期日斯特乌威西衣资」
+      // 拼音首字母对照：从 Z 到 A 反向比较，找到首个 c >= 参考字的字母
       const pinyinFirst = [
         ['A','阿'],['B','八'],['C','擦'],['D','搭'],['E','鹅'],['F','发'],['G','噶'],['H','哈'],['J','机'],['K','卡'],['L','拉'],['M','妈'],['N','拿'],['O','哦'],['P','啪'],['Q','七'],['R','然'],['S','三'],['T','他'],['W','挖'],['X','西'],['Y','压'],['Z','杂']
       ];
@@ -1665,10 +1684,19 @@
       const ic=btn.querySelector('i'); if(ic) ic.className=d?'fa fa-sort-amount-desc mr-1':'fa fa-sort-amount-asc mr-1';
     } else btn.classList.add('hidden');
   }
-  // 根据屏幕尺寸估算每页数量：cols * ~4 行
+  // 根据屏幕尺寸估算每页数量：cols * ~4 行（与 CSS 媒体查询列数保持一致）
   function gridPageSize(){
     const w=window.innerWidth;
-    const cols=w>=1024?4:(w>=640?3:2);
+    const isLandscape = (window.innerWidth>window.innerHeight) || document.documentElement.classList.contains('landscape');
+    // 与 CSS 响应式列数对齐：手机竖屏2 / 手机横屏4 / 平板竖3横4 / 电脑竖3横4 / 大宽屏5
+    let cols;
+    if(w>=1280 && isLandscape) cols=5;
+    else if(w>=1024 && isLandscape) cols=4;
+    else if(w>=1024) cols=3;
+    else if(w>=768 && isLandscape) cols=4;
+    else if(w>=768) cols=3;
+    else if(isLandscape) cols=4;
+    else cols=2;
     return cols*4;
   }
   // 通用页码条（首页末页 + 当前前后窗口 + 省略号，按钮 disabled 双保险）
@@ -1824,9 +1852,9 @@
     const tags=[...new Set(itemsOf(m).flatMap(s=>s.tags||[]))];
     if(!tags.length){ row.innerHTML=''; return; }
     row.innerHTML=`<span class="tag-chip ${!ui[m.key].tagFilter?'active':''}" onclick="setTagFilter('${m.key}',null)">全部标签</span>`+
-      tags.map(t=>`<span class="tag-chip ${ui[m.key].tagFilter===t?'active':''}" onclick='setTagFilter("${m.key}",${JSON.stringify(t)})'>${escapeHtml(t)}</span>`).join('');
+      tags.map(t=>{ const j=JSON.stringify(t).replace(/"/g,'&quot;'); return `<span class="tag-chip ${ui[m.key].tagFilter===t?'active':''}" onclick="setTagFilter('${m.key}',${j})">${escapeHtml(t)}</span>`; }).join('');
   }
-  function setTagFilter(key,t){ ui[key].tagFilter=t; renderTagFilters(MODULES[key]); renderGrid(MODULES[key]); }
+  function setTagFilter(key,t){ ui[key].tagFilter=t; resetGridPages(key); renderTagFilters(MODULES[key]); renderGrid(MODULES[key]); }
   function renderStats(m){
     const items=itemsOf(m);
     const wrap=$(m.key+'StatsWrap');
@@ -2018,7 +2046,7 @@
   }
   $('fldTagInput').addEventListener('keydown', e=>{
     if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim();
-      if(v && !editingTags.includes(v)){ editingTags.push(v); renderTagList(); } e.target.value=''; }
+      if(v && !editingTags.includes(v)){ editingTags.push(v); addUserTagToLibrary(editingModuleKey, v); renderTagList(); } e.target.value=''; }
   });
 
   // ============ 本地照片：裁剪 + 压缩 + 入图库 ============
@@ -2525,7 +2553,8 @@
     const platforms=['all',...new Set(records.map(r=>r.software).filter(Boolean))];
     pf.innerHTML=platforms.map(p=>{
       const lbl=p==='all'?'全部':escapeHtml(p);
-      return `<span class="tag-chip ${currentPlatform===p?'active':''}" onclick='setPlatformFilter(${JSON.stringify(p)})'>${lbl}</span>`;
+      const j=JSON.stringify(p).replace(/"/g,'&quot;');
+      return `<span class="tag-chip ${currentPlatform===p?'active':''}" onclick="setPlatformFilter(${j})">${lbl}</span>`;
     }).join('');
     const filtered=records.filter(r=>currentPlatform==='all'||r.software===currentPlatform).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     if(!filtered.length){ list.innerHTML='<p class="text-muted-c text-sm text-center py-8">暂无记录</p>'; return; }
@@ -2688,6 +2717,15 @@
             </div>
           </div>
         </div>`;
+      }).join('');
+    } else if(style==='grid'){
+      // 宫格墙：纯海报密集网格，无文字标签，悬停显示标题
+      wrap.className='grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2';
+      wrap.innerHTML=recent.map(it=>{
+        const m=MODULES[it._k];
+        const fb=`<div class="w-full aspect-[2/3] rounded-lg soft-bg flex items-center justify-center text-muted-c"><i class="fa ${m.key==='book'?'fa-book':'fa-film'} text-xl"></i></div>`;
+        const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-lg" onerror="this.parentNode.innerHTML='${fb.replace(/"/g,'&quot;').replace(/'/g,'\\&#39;')}'">`:fb;
+        return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')" title="${escapeHtml(it.title)}">${img}</div>`;
       }).join('');
     } else {
       // card 默认
@@ -2864,7 +2902,12 @@
 
   // ============ 数据导入/导出 ============
   function exportData(){
-    const payload={ exportedAt:new Date().toISOString(), user:currentName, code:currentUser, shows:data.shows, books:data.books, records, customApps, profile };
+    const payload={ exportedAt:new Date().toISOString(), user:currentName, code:currentUser,
+      shows:data.shows, books:data.books, records, customApps, profile,
+      appOverrides, appOrder,
+      userTags:{ show:loadUserTags('show'), book:loadUserTags('book') },
+      manualOrder:{ show:loadManualOrder(MODULES.show), book:loadManualOrder(MODULES.book) }
+    };
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const link=document.createElement('a');
     link.download='myshowlog-'+(currentName||currentUser)+'-'+Date.now()+'.json';
@@ -2885,9 +2928,26 @@
         if(Array.isArray(d.records)) records=d.records;
         if(Array.isArray(d.customApps)) customApps=d.customApps;
         if(d.profile) Object.assign(profile,d.profile);
+        if(d.appOverrides && typeof d.appOverrides==='object') appOverrides=d.appOverrides;
+        if(Array.isArray(d.appOrder)) appOrder=d.appOrder;
+        // 导入用户标签库与手动排序
+        if(d.userTags && typeof d.userTags==='object'){
+          if(Array.isArray(d.userTags.show)) saveUserTags('show', d.userTags.show);
+          if(Array.isArray(d.userTags.book)) saveUserTags('book', d.userTags.book);
+          ui.show.userTags=null; ui.book.userTags=null; // 重置缓存以便重新加载
+        }
+        if(d.manualOrder && typeof d.manualOrder==='object'){
+          if(Array.isArray(d.manualOrder.show)){ ui.show.manualOrder=d.manualOrder.show; saveManualOrder(MODULES.show, d.manualOrder.show); }
+          if(Array.isArray(d.manualOrder.book)){ ui.book.manualOrder=d.manualOrder.book; saveManualOrder(MODULES.book, d.manualOrder.book); }
+        }
         Object.values(MODULES).forEach(m=>saveItems(m));
-        saveRecords(); saveApps(); saveProfile();
+        saveRecords(); saveApps(); saveProfile(); saveAppOverrides(); saveAppOrder();
         renderAppShortcuts();
+        // 若当前在剧集/书架视图，重新渲染
+        try{
+          if(activeView==='home') renderAll(MODULES.show);
+          else if(activeView==='books') renderAll(MODULES.book);
+        }catch(_){}
         alert('导入成功');
       }catch(err){ alert('导入失败：'+err.message); }
     };
@@ -2896,9 +2956,25 @@
   }
   function clearAllData(){
     if(!confirm('将清空当前账号所有剧集、书籍、记录与自定义应用，且不可恢复，确定？')) return;
-    data.shows=[]; data.books=[]; records=[]; customApps=[]; appOrder=[];
+    data.shows=[]; data.books=[]; records=[]; customApps=[]; appOrder=[]; appOverrides={};
+    // 清空用户标签库与手动排序
+    ui.show.userTags=[]; ui.book.userTags=[];
+    ui.show.manualOrder=[]; ui.book.manualOrder=[];
+    saveUserTags('show', []); saveUserTags('book', []);
+    saveManualOrder(MODULES.show, []); saveManualOrder(MODULES.book, []);
     Object.values(MODULES).forEach(m=>saveItems(m));
-    saveRecords(); saveApps(); saveAppOrder(); renderAppShortcuts();
+    saveRecords(); saveApps(); saveAppOrder(); saveAppOverrides(); renderAppShortcuts();
+    // 重置筛选/排序/分页/展开等 UI 状态，避免清空后残留失效的标签筛选或展开状态
+    ['show','book'].forEach(k=>{
+      ui[k].filter='all'; ui[k].tagFilter=null; ui[k].keyword=''; ui[k].showAll=false;
+      if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
+    });
+    $('searchInput_show').value=''; $('searchInput_book').value='';
+    resetGridPages('show'); resetGridPages('book');
+    try{
+      if(activeView==='home') renderAll(MODULES.show);
+      else if(activeView==='books') renderAll(MODULES.book);
+    }catch(_){}
     alert('已清空');
   }
 
@@ -3074,20 +3150,20 @@
   function bindPullToRefresh(){
     const main=document.querySelector('main'); if(!main) return;
     main.addEventListener('touchstart', e=>{
-      // 仅在视口顶部（main 内滚动到顶部）才开始下拉
-      if(window.scrollY>0 && main.getBoundingClientRect().top<0) return;
+      // 仅当页面滚动到顶部时才允许下拉刷新（window.scrollY<=0 表示已到页面顶部）
+      if(window.scrollY>0){ pullState.pulling=false; return; }
       const t=e.touches[0];
       pullState.startY=t.clientY; pullState.pulling=true;
       const ptr=$('pullToRefresh'); if(ptr){ ptr.classList.remove('active'); ptr.style.height='0px'; ptr.querySelector('.ptr-text').textContent='下拉刷新'; }
     }, {passive:true});
     main.addEventListener('touchmove', e=>{
       if(!pullState.pulling) return;
+      // 仅在主页/书架/推荐页生效，其他视图不响应下拉
+      if(!['home','books','recommend'].includes(activeView)){ pullState.pulling=false; const ptr=$('pullToRefresh'); if(ptr) ptr.style.height='0px'; return; }
       const t=e.touches[0];
       const dy=t.clientY-pullState.startY;
       if(dy<=0){ const ptr=$('pullToRefresh'); if(ptr){ ptr.style.height='0px'; } return; }
       const ptr=$('pullToRefresh'); if(!ptr) return;
-      // 仅在主页/书架/推荐页生效
-      if(!['home','books','recommend'].includes(activeView)) return;
       const h=Math.min(pullState.threshold*1.5, dy*0.5);
       ptr.style.height=h+'px';
       ptr.querySelector('.ptr-text').textContent = h>=pullState.threshold ? '松开刷新' : '下拉刷新';
@@ -3151,9 +3227,6 @@
   }
   window.addEventListener('orientationchange', ()=>setTimeout(_afterOrientOrResize, 120));
   window.addEventListener('resize', ()=>_afterOrientOrResize());
-  if(window.matchMedia && window.matchMedia('(orientation: landscape)').addEventListener){
-    window.matchMedia('(orientation: landscape)').addEventListener('change', _afterOrientOrResize);
-  }
   // 监听地址栏 hash 变化（同一页面内打开分享链接时也能触发导入）
   window.addEventListener('hashchange', ()=>{
     const hash = window.location.hash || '';
@@ -3162,6 +3235,12 @@
       importSharedData(m[1]);
     }
   });
+  // 兼容老浏览器：MediaQueryList 上 addEventListener 可能不存在，回退到 addListener
+  if(window.matchMedia){
+    const mql=window.matchMedia('(orientation: landscape)');
+    if(mql.addEventListener) mql.addEventListener('change', _afterOrientOrResize);
+    else if(mql.addListener) mql.addListener(_afterOrientOrResize);
+  }
 </script>
 </body>
 </html>
