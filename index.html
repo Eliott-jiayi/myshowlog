@@ -174,27 +174,52 @@
         <p class="text-xs text-muted-c leading-tight">我的剧集与书架记录本</p>
       </div>
     </div>
-    <div class="tab flex gap-4 mb-5">
+    <div class="tab flex gap-4 mb-5" id="authTabs">
       <button id="tabLogin" onclick="switchAuthTab('login')" class="font-medium border-b-2 pb-1" style="border-color:var(--accent)">登录</button>
       <button id="tabReg" onclick="switchAuthTab('reg')" class="text-muted-c pb-1">注册账号</button>
     </div>
+    <!-- 登录 -->
     <div id="panelLogin">
-      <div class="mb-3"><label class="text-sm block mb-1">用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="输入用户名" oninput="onLoginNameInput()"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">邮箱或用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="邮箱或用户名" oninput="onLoginIdInput()"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">密码</label><input id="loginPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="输入密码"/></div>
       <div id="loginCodeWrap" class="mb-3 hidden">
         <label class="text-sm block mb-1">账号编码</label>
         <input id="loginCode" class="input-ins w-full px-4 py-2.5" placeholder="同名账号需填编码（如 MSL-AB12CD）"/>
-        <p class="text-xs text-muted-c mt-1">检测到同名账号，请填写注册时生成的账号编码以区分</p>
+        <p class="text-xs text-muted-c mt-1">检测到多个同名账号，请填写注册时生成的账号编码以区分</p>
       </div>
       <button onclick="doLogin()" class="btn-soft w-full py-2.5">登录</button>
+      <div class="flex justify-between mt-3">
+        <button onclick="switchAuthTab('recover')" class="text-xs text-muted-c hover:opacity-70">忘记密码？找回</button>
+        <button onclick="switchAuthTab('reg')" class="text-xs text-muted-c hover:opacity-70">没有账号？注册</button>
+      </div>
     </div>
+    <!-- 注册：邮箱+验证码两步 -->
     <div id="panelReg" class="hidden">
-      <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5" placeholder="可同名，系统自动生成唯一账号编码"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5" placeholder="可同名，系统生成唯一账号编码"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">邮箱</label><input id="regEmail" type="email" class="input-ins w-full px-4 py-2.5" placeholder="用于验证与找回密码"/></div>
       <div class="mb-3"><label class="text-sm block mb-1">设置密码</label><input id="regPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="设置密码"/></div>
-      <div class="mb-4"><label class="text-sm block mb-1">确认密码</label><input id="regPwd2" type="password" class="input-ins w-full px-4 py-2.5" placeholder="再次输入密码"/></div>
-      <button onclick="doRegister()" class="btn-soft w-full py-2.5">注册</button>
+      <div class="mb-3"><label class="text-sm block mb-1">确认密码</label><input id="regPwd2" type="password" class="input-ins w-full px-4 py-2.5" placeholder="再次输入密码"/></div>
+      <button onclick="sendRegCode()" class="btn-soft w-full py-2.5">发送验证码</button>
+      <div id="regCodeWrap" class="hidden mt-3">
+        <div class="mb-3"><label class="text-sm block mb-1">验证码</label><input id="regCode" class="input-ins w-full px-4 py-2.5" placeholder="输入 6 位验证码"/></div>
+        <p id="regCodeHint" class="text-xs mb-3" style="color:var(--accent)"></p>
+        <button onclick="verifyAndRegister()" class="btn-soft w-full py-2.5">验证并注册</button>
+      </div>
     </div>
-    <div class="mt-4 text-xs text-muted-c">提示：数据存储在本机设备，像 APP 一样本地保存；账号编码用于同名区分，请妥善保存</div>
+    <!-- 找回密码 -->
+    <div id="panelRecover" class="hidden">
+      <div class="mb-3"><label class="text-sm block mb-1">注册邮箱</label><input id="rcvEmail" type="email" class="input-ins w-full px-4 py-2.5" placeholder="输入注册时的邮箱"/></div>
+      <button onclick="sendRcvCode()" class="btn-soft w-full py-2.5">发送验证码</button>
+      <div id="rcvCodeWrap" class="hidden mt-3">
+        <div class="mb-3"><label class="text-sm block mb-1">验证码</label><input id="rcvCode" class="input-ins w-full px-4 py-2.5" placeholder="输入 6 位验证码"/></div>
+        <p id="rcvCodeHint" class="text-xs mb-3" style="color:var(--accent)"></p>
+        <div class="mb-3"><label class="text-sm block mb-1">新密码</label><input id="rcvPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="设置新密码"/></div>
+        <div class="mb-3"><label class="text-sm block mb-1">确认新密码</label><input id="rcvPwd2" type="password" class="input-ins w-full px-4 py-2.5" placeholder="再次输入新密码"/></div>
+        <button onclick="doResetPwd()" class="btn-soft w-full py-2.5">重置密码</button>
+      </div>
+      <button onclick="switchAuthTab('login')" class="text-xs text-muted-c hover:opacity-70 mt-3">返回登录</button>
+    </div>
+    <div class="mt-4 text-xs text-muted-c" id="authFootHint">提示：数据存储在本机设备，像 APP 一样本地保存；验证码为本地模式（接入 EmailJS 后改为邮件发送）</div>
   </div>
 </div>
 
@@ -211,6 +236,8 @@
   <div class="card-ins p-6 w-full max-w-lg mx-auto my-8 relative">
     <button onclick="closeItemModal()" class="absolute right-5 top-4 text-muted-c hover:opacity-70"><i class="fa fa-times text-xl"></i></button>
     <h3 id="itemModalTitle" class="text-lg font-medium mb-4">添加</h3>
+    <input id="aiPhotoFile" type="file" accept="image/*" class="hidden" onchange="onAIPhotoPick(event)"/>
+    <button id="aiPickBtn" onclick="document.getElementById('aiPhotoFile').click()" class="btn-outline w-full py-2 mb-4 text-sm flex items-center justify-center gap-2"><i class="fa fa-magic"></i> AI 智能识别（拍照/选海报自动填）</button>
     <input id="editId" type="hidden"/>
     <input id="editModule" type="hidden"/>
     <div class="grid grid-cols-1 gap-4">
@@ -524,6 +551,32 @@
       <section data-view-panel="settings" class="hidden">
         <h2 class="text-xl font-medium mb-4">设置</h2>
 
+        <!-- 账号管理 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-3">账号管理</h3>
+          <div class="text-sm space-y-1 mb-4">
+            <div>用户名：<span id="setName" class="font-medium"></span></div>
+            <div>邮箱：<span id="setEmail" class="font-medium"></span></div>
+            <div>账号编码：<span id="setCode" class="font-mono" style="color:var(--accent)"></span></div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="changePassword()" class="btn-soft px-4 py-2 text-sm"><i class="fa fa-key mr-1"></i>修改密码</button>
+            <button onclick="logout()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-sign-out mr-1"></i>退出登录</button>
+          </div>
+          <p class="text-xs text-muted-c mt-3">数据存储在本机设备；修改密码仅影响本机账号。</p>
+        </div>
+
+        <!-- 横竖屏设置 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">横竖屏设置</h3>
+          <p class="text-xs text-muted-c mb-3">选择屏幕方向以适应你的设备（手机横屏会启用紧凑侧栏布局）。</p>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="auto" onchange="setOrientationMode('auto')"/><span>跟随设备</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="portrait" onchange="setOrientationMode('portrait')"/><span>强制竖屏</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="orientMode" value="landscape" onchange="setOrientationMode('landscape')"/><span>强制横屏</span></label>
+          </div>
+        </div>
+
         <div class="card-ins p-5 mb-6">
           <h3 class="font-medium mb-3">主题色调</h3>
           <div class="flex flex-wrap gap-4">
@@ -570,7 +623,36 @@
             </label>
           </div>
           <div id="appManageList" class="space-y-2 mb-3"></div>
-          <button onclick="addCustomApp()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-plus mr-1"></i>添加自定义应用</button>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <button onclick="addCustomApp()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-plus mr-1"></i>添加自定义应用</button>
+            <button onclick="restorePresetApps()" class="btn-outline px-4 py-2 text-sm"><i class="fa fa-undo mr-1"></i>恢复已删预置应用</button>
+          </div>
+          <p class="text-xs text-muted-c">每个应用可改名（铅笔）/删除（垃圾桶）；预置应用删除后可在此恢复。</p>
+        </div>
+
+        <!-- AI 智能识别配置 -->
+        <div class="card-ins p-5 mb-6">
+          <h3 class="font-medium mb-2">AI 智能识别</h3>
+          <p class="text-xs text-muted-c mb-4">在添加剧集/书籍时点「AI 智能识别」上传海报/封面，自动识别名称、集数、标签并填入。API Key 仅存本机 localStorage，不上传服务器。</p>
+          <div class="space-y-3">
+            <div>
+              <label class="text-sm block mb-1">服务商</label>
+              <select id="aiProvider" class="input-ins w-full px-4 py-2.5" onchange="if(!$('aiModel').value){ $('aiModel').value=AI_DEFAULT_MODELS[this.value]; }">
+                <option value="gemini">Google Gemini（推荐，CORS 友好、有免费额度）</option>
+                <option value="openai">OpenAI GPT-4o（可能受 CORS 限制）</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm block mb-1">API Key</label>
+              <input id="aiKey" type="password" class="input-ins w-full px-4 py-2.5" placeholder="粘贴你的 API Key（Gemini 在 aistudio.google.com 获取）"/>
+            </div>
+            <div>
+              <label class="text-sm block mb-1">模型（可选，留空用默认）</label>
+              <input id="aiModel" class="input-ins w-full px-4 py-2.5" placeholder="gemini-1.5-flash / gpt-4o-mini"/>
+            </div>
+            <button onclick="saveAIConfig()" class="btn-soft px-4 py-2 text-sm"><i class="fa fa-save mr-1"></i>保存配置</button>
+          </div>
+          <p class="text-xs text-muted-c mt-3">获取 Gemini Key：打开 aistudio.google.com → 创建 API Key（免费额度充足）。Key 仅用于浏览器直接调用，请妥善保管。</p>
         </div>
 
         <div class="card-ins p-5 mb-6">
@@ -637,7 +719,7 @@
   const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null},
              book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
-      customApps=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
+      customApps=[], appOverrides={}, editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
 
   // ============ 工具 ============
@@ -746,13 +828,15 @@
 
   // ============ 认证 ============
   function switchAuthTab(tab){
-    const login = tab==='login';
+    const login = tab==='login', reg = tab==='reg', recover = tab==='recover';
     $('panelLogin').classList.toggle('hidden', !login);
-    $('panelReg').classList.toggle('hidden', login);
+    $('panelReg').classList.toggle('hidden', !reg);
+    $('panelRecover').classList.toggle('hidden', !recover);
+    $('authTabs').classList.toggle('hidden', recover); // 找回面板隐藏顶部 tab
     $('tabLogin').classList.toggle('font-medium', login);
-    $('tabReg').classList.toggle('font-medium', !login);
+    $('tabReg').classList.toggle('font-medium', reg);
     if(login){ $('tabLogin').style.borderColor='var(--accent)'; $('tabReg').style.borderColor='transparent'; $('tabLogin').classList.remove('text-muted-c'); $('tabReg').classList.add('text-muted-c'); }
-    else { $('tabReg').style.borderColor='var(--accent)'; $('tabLogin').style.borderColor='transparent'; $('tabReg').classList.remove('text-muted-c'); $('tabLogin').classList.add('text-muted-c'); }
+    else if(reg){ $('tabReg').style.borderColor='var(--accent)'; $('tabLogin').style.borderColor='transparent'; $('tabReg').classList.remove('text-muted-c'); $('tabLogin').classList.add('text-muted-c'); }
   }
   // 账号存储为数组（支持同名），每条 {code,name,pwd,since}；code 为唯一键，作为数据存储后缀
   function getUsers(){
@@ -760,13 +844,20 @@
   }
   function setUsers(u){ localStorage.setItem(STORAGE_USERS, JSON.stringify(u)); }
   function findAccountsByName(name){ return getUsers().filter(a=>a.name===name); }
-  // 登录面板：输入用户名时检测同名，决定是否显示账号编码输入框
-  function onLoginNameInput(){
-    const name=$('loginUser').value.trim();
-    const dup = name && findAccountsByName(name).length>1;
+  function findAccountByEmail(email){ const e=(email||'').trim().toLowerCase(); return getUsers().find(a=>(a.email||'').toLowerCase()===e); }
+  // 按邮箱或用户名查找账号（登录用）
+  function findAccountsByIdentifier(id){
+    const v=(id||'').trim(); if(!v) return [];
+    const e=v.toLowerCase();
+    return getUsers().filter(a=>a.name===v || (a.email||'').toLowerCase()===e);
+  }
+  // 登录面板：输入邮箱/用户名时检测同名，决定是否显示账号编码输入框
+  function onLoginIdInput(){
+    const id=$('loginUser').value.trim();
+    const dup = id && findAccountsByIdentifier(id).length>1;
     $('loginCodeWrap').classList.toggle('hidden', !dup);
   }
-  // 一次性迁移：旧版对象格式 {name:pwd} → 数组 [{code,name,pwd,since}]，并按 code 重新键化本地数据
+  // 一次性迁移：旧版对象格式 {name:pwd} → 数组 [{code,name,pwd,since,email,verified}]，并按 code 重新键化本地数据
   function migrateOldUsers(){
     let raw=localStorage.getItem(STORAGE_USERS); if(!raw) return;
     let parsed; try{ parsed=JSON.parse(raw); }catch(e){ return; }
@@ -776,7 +867,7 @@
     const arr=[];
     for(const [name,pwd] of Object.entries(parsed)){
       const code=genAccountCode();
-      arr.push({code, name, pwd, since:Date.now()});
+      arr.push({code, name, pwd, since:Date.now(), email:'', verified:false});
       prefixes.forEach(p=>{ const v=localStorage.getItem(p+name); if(v!==null){ localStorage.setItem(p+code, v); localStorage.removeItem(p+name); } });
       galleryRekeyUser(name, code);
       if(oldSession===name) localStorage.setItem(STORAGE_SESSION, code);
@@ -797,29 +888,103 @@
       });
     }catch(e){}
   }
-  function doRegister(){
-    const name=$('regUser').value.trim(), p=$('regPwd').value, p2=$('regPwd2').value;
-    if(!name||!p){ alert('请填写用户名和密码'); return; }
-    if(p!==p2){ alert('两次密码不一致，请重新输入'); return; }
-    const code=genAccountCode();
+  // ============ 邮箱验证码（本地模式，可接 EmailJS） ============
+  const EMAILJS_CONFIG = { serviceId:'', templateId:'', publicKey:'' }; // 填入后改为真实邮件发送
+  const genVerifyCode = () => String(Math.floor(100000 + Math.random()*900000));
+  // 投递验证码：返回非空字符串=本地展示；返回 null=已通过 EmailJS 发邮件
+  async function deliverVerifyCode(email, code){
+    // 如已配置 EmailJS 并引入 SDK，则发真实邮件：
+    // if(window.emailjs && EMAILJS_CONFIG.serviceId){
+    //   try{ await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {to_email:email, code}, EMAILJS_CONFIG.publicKey); return null; }
+    //   catch(e){ /* 失败回退本地展示 */ }
+    // }
+    return code;
+  }
+  // 注册第一步：校验并发送验证码（暂存 pending 于 sessionStorage）
+  async function sendRegCode(){
+    const name=$('regUser').value.trim(), email=$('regEmail').value.trim(), p=$('regPwd').value, p2=$('regPwd2').value;
+    if(!name||!email||!p){ alert('请填写用户名、邮箱和密码'); return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert('邮箱格式不正确'); return; }
+    if(p!==p2){ alert('两次密码不一致'); return; }
+    if(findAccountByEmail(email)){ alert('该邮箱已注册，请直接登录或找回密码'); return; }
+    const code=genVerifyCode();
+    const shown=await deliverVerifyCode(email, code);
+    sessionStorage.setItem('msl_pending_reg', JSON.stringify({name,email,pwd:p,code}));
+    $('regCodeWrap').classList.remove('hidden');
+    $('regCodeHint').textContent = shown ? ('本地模式验证码：'+shown+'（接入 EmailJS 后改为邮件发送到 '+email+'）') : ('验证码已发送至 '+email+'，请查收邮件');
+  }
+  // 注册第二步：校验验证码并创建账号
+  function verifyAndRegister(){
+    const pending=JSON.parse(sessionStorage.getItem('msl_pending_reg')||'null');
+    if(!pending){ alert('请先发送验证码'); return; }
+    const code=($('regCode').value||'').trim();
+    if(code!==pending.code){ alert('验证码不正确'); return; }
+    const accCode=genAccountCode();
     const users=getUsers();
-    users.push({code, name, pwd:p, since:Date.now()});
+    users.push({code:accCode, name:pending.name, email:pending.email, pwd:pending.pwd, since:Date.now(), verified:true});
     setUsers(users);
-    // 直接登录（数据按 code 存储在本机）
-    currentUser=code; currentName=name; localStorage.setItem(STORAGE_SESSION, code);
-    $('regUser').value=''; $('regPwd').value=''; $('regPwd2').value='';
+    sessionStorage.removeItem('msl_pending_reg');
+    currentUser=accCode; currentName=pending.name; localStorage.setItem(STORAGE_SESSION, accCode);
+    $('regUser').value=''; $('regEmail').value=''; $('regPwd').value=''; $('regPwd2').value=''; $('regCode').value='';
+    $('regCodeWrap').classList.add('hidden'); $('regCodeHint').textContent='';
     enterApp();
-    setTimeout(()=>alert('注册成功！\n你的账号编码：'+code+'\n（同名账号用此编码区分，可在「我的」查看，请妥善保存）'), 200);
+    setTimeout(()=>alert('注册成功！\n账号编码：'+accCode+'\n（同名账号用此编码区分，可在「我的」查看）'), 200);
+  }
+  // 找回密码第一步：发送验证码
+  async function sendRcvCode(){
+    const email=$('rcvEmail').value.trim();
+    if(!email){ alert('请输入注册邮箱'); return; }
+    const acc=findAccountByEmail(email);
+    if(!acc){ alert('该邮箱未注册'); return; }
+    const code=genVerifyCode();
+    const shown=await deliverVerifyCode(email, code);
+    sessionStorage.setItem('msl_pending_rcv', JSON.stringify({email, code}));
+    $('rcvCodeWrap').classList.remove('hidden');
+    $('rcvCodeHint').textContent = shown ? ('本地模式验证码：'+shown) : ('验证码已发送至 '+email);
+  }
+  // 找回密码第二步：校验并重置密码
+  function doResetPwd(){
+    const pending=JSON.parse(sessionStorage.getItem('msl_pending_rcv')||'null');
+    if(!pending){ alert('请先发送验证码'); return; }
+    const code=($('rcvCode').value||'').trim(), p=$('rcvPwd').value, p2=$('rcvPwd2').value;
+    if(code!==pending.code){ alert('验证码不正确'); return; }
+    if(!p){ alert('请设置新密码'); return; }
+    if(p!==p2){ alert('两次新密码不一致'); return; }
+    const users=getUsers();
+    const acc=users.find(a=>(a.email||'').toLowerCase()===pending.email.toLowerCase());
+    if(!acc){ alert('账号异常'); return; }
+    acc.pwd=p; setUsers(users);
+    sessionStorage.removeItem('msl_pending_rcv');
+    $('rcvEmail').value=''; $('rcvCode').value=''; $('rcvPwd').value=''; $('rcvPwd2').value='';
+    $('rcvCodeWrap').classList.add('hidden'); $('rcvCodeHint').textContent='';
+    alert('密码已重置，请用新密码登录');
+    switchAuthTab('login');
+  }
+  // 设置页：修改密码
+  function changePassword(){
+    if(!currentUser){ alert('请先登录'); return; }
+    const oldp=prompt('请输入当前密码：');
+    if(oldp===null) return;
+    const users=getUsers();
+    const acc=users.find(a=>a.code===currentUser);
+    if(!acc){ alert('账号异常'); return; }
+    if(acc.pwd!==oldp){ alert('当前密码不正确'); return; }
+    const np=prompt('请输入新密码：'); if(np===null) return;
+    if(!np){ alert('新密码不能为空'); return; }
+    const np2=prompt('请再次输入新密码：'); if(np2===null) return;
+    if(np!==np2){ alert('两次新密码不一致'); return; }
+    acc.pwd=np; setUsers(users);
+    alert('密码已修改，下次请用新密码登录');
   }
   function doLogin(){
-    const name=$('loginUser').value.trim(), p=$('loginPwd').value;
-    if(!name||!p){ alert('请填写用户名和密码'); return; }
-    let matches=findAccountsByName(name).filter(a=>a.pwd===p);
-    if(matches.length===0){ alert('用户名或密码错误'); return; }
+    const id=$('loginUser').value.trim(), p=$('loginPwd').value;
+    if(!id||!p){ alert('请填写邮箱/用户名和密码'); return; }
+    let matches=findAccountsByIdentifier(id).filter(a=>a.pwd===p);
+    if(matches.length===0){ alert('账号或密码错误'); return; }
     if(matches.length>1){
-      // 同名 + 同密码：必须用账号编码区分
+      // 同名/同邮箱 + 同密码：必须用账号编码区分
       const code=($('loginCode').value||'').trim().toUpperCase();
-      if(!code){ alert('检测到多个同名账号，请填写账号编码以区分'); return; }
+      if(!code){ alert('检测到多个匹配账号，请填写账号编码以区分'); return; }
       const hit=matches.find(a=>a.code.toUpperCase()===code);
       if(!hit){ alert('账号编码不正确'); return; }
       matches=[hit];
@@ -831,16 +996,17 @@
   function logout(){
     if(!confirm('确定退出登录？')) return;
     localStorage.removeItem(STORAGE_SESSION);
-    currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[];
+    currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[]; appOverrides={};
     $('appShell').classList.add('hidden');
     $('loginModal').classList.remove('hidden');
     $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
+    $('regCodeWrap')?.classList.add('hidden'); $('rcvCodeWrap')?.classList.add('hidden');
   }
   function enterApp(){
     $('loginModal').classList.add('hidden');
     $('appShell').classList.remove('hidden');
     Object.values(MODULES).forEach(m=>loadItems(m));
-    loadProfile(); loadRecords(); loadApps();
+    loadProfile(); loadRecords(); loadApps(); loadAppOverrides();
     renderMiniProfile();
     switchView('home');
     // 登录后处理待导入的分享链接
@@ -861,6 +1027,77 @@
   function saveRecords(){ localStorage.setItem(userRecordsKey(), JSON.stringify(records)); }
   function loadApps(){ try{ customApps=JSON.parse(localStorage.getItem(userAppsKey())||'[]'); }catch(e){ customApps=[]; } }
   function saveApps(){ localStorage.setItem(userAppsKey(), JSON.stringify(customApps)); }
+  // 预置应用改名/删除覆盖（按账号存储）
+  const userAppOverridesKey = () => 'msl_app_overrides_'+currentUser;
+  function loadAppOverrides(){ try{ appOverrides=JSON.parse(localStorage.getItem(userAppOverridesKey())||'{}'); }catch(e){ appOverrides={}; } }
+  function saveAppOverrides(){ localStorage.setItem(userAppOverridesKey(), JSON.stringify(appOverrides)); }
+  // ============ AI 配置（Gemini/OpenAI 视觉，Key 仅存本机） ============
+  function getAIConfig(){
+    try{ return Object.assign({provider:'gemini', apiKey:'', model:''}, JSON.parse(localStorage.getItem('msl_ai_config')||'{}')); }catch(e){ return {provider:'gemini', apiKey:'', model:''}; }
+  }
+  function saveAIConfig(){ localStorage.setItem('msl_ai_config', JSON.stringify({provider:$('aiProvider').value, apiKey:$('aiKey').value.trim(), model:$('aiModel').value.trim()})); }
+  const AI_DEFAULT_MODELS = { gemini:'gemini-1.5-flash', openai:'gpt-4o-mini' };
+  // AI 识别照片：调用视觉大模型，返回 {category,title,total,tags,raw}
+  async function aiRecognizePhoto(dataUrl, mime){
+    const cfg=getAIConfig();
+    if(!cfg.apiKey) throw new Error('未配置 AI API Key，请在「设置 → AI 智能识别」填写');
+    const curModule=$('editModule').value || 'show';
+    const m=MODULES[curModule];
+    const prompt='这是一张'+m.label+'相关的图片（海报/封面/截图）。请识别其中的内容，严格只返回一个 JSON（不要 markdown、不要解释），格式：{"title":"名称","total":数字或0,"type":"类型(可选)","tags":["标签1","标签2"]}';
+    const b64=dataUrl.split(',')[1]||'';
+    let text='';
+    if(cfg.provider==='openai'){
+      const model=cfg.model||AI_DEFAULT_MODELS.openai;
+      const res=await fetch('https://api.openai.com/v1/chat/completions',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+        body:JSON.stringify({ model, messages:[{role:'user', content:[
+          {type:'text',text:prompt}, {type:'image_url',image_url:{url:dataUrl}}
+        ]}], response_format:{type:'json_object'} })
+      });
+      if(!res.ok) throw new Error('AI 调用失败：'+res.status+' '+await safeErr(res));
+      const j=await res.json(); text=j.choices?.[0]?.message?.content||'';
+    } else { // gemini（CORS 友好，浏览器直连）
+      const model=cfg.model||AI_DEFAULT_MODELS.gemini;
+      const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(cfg.apiKey),{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ contents:[{ parts:[ {text:prompt}, {inline_data:{mime_type:mime||'image/jpeg', data:b64}} ] }] })
+      });
+      if(!res.ok) throw new Error('AI 调用失败：'+res.status+' '+await safeErr(res));
+      const j=await res.json(); text=j.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    }
+    return parseAIResult(text);
+  }
+  async function safeErr(res){ try{ const e=await res.json(); return JSON.stringify(e.error||e).slice(0,200); }catch(_){ return res.statusText; } }
+  function parseAIResult(text){
+    let t=(text||'').trim();
+    const m=t.match(/```(?:json)?\s*([\s\S]*?)```/); if(m) t=m[1].trim();
+    const s=t.indexOf('{'), e=t.lastIndexOf('}');
+    if(s>=0 && e>s) t=t.slice(s,e+1);
+    let obj; try{ obj=JSON.parse(t); }catch(_){ return {raw:text}; }
+    return { title:obj.title||'', total:parseInt(obj.total)||0, type:obj.type||'', tags:Array.isArray(obj.tags)?obj.tags:[], raw:text };
+  }
+  // 条目弹窗：AI 识别按钮入口
+  async function onAIPhotoPick(e){
+    const file=e.target.files&&e.target.files[0]; e.target.value='';
+    if(!file) return;
+    if(!confirm('将把照片发送给 AI 识别并自动填充条目信息，是否继续？')) return;
+    const btn=$('aiPickBtn'); const old=btn?btn.innerHTML:'';
+    if(btn){ btn.innerHTML='<i class="fa fa-spinner fa-spin mr-1"></i>识别中...'; btn.disabled=true; }
+    try{
+      const dataUrl=await fileToDataUrl(file);
+      const r=await aiRecognizePhoto(dataUrl, file.type);
+      // 填充表单
+      if(r.title) $('fldTitle').value=r.title;
+      if(r.total) $('fldTotal').value=r.total;
+      if(r.tags && r.tags.length){ r.tags.slice(0,5).forEach(t=>{ if(t && !editingTags.includes(t)) editingTags.push(t); }); renderTagList(); }
+      // 设置封面为该照片
+      $('fldImg').value=dataUrl; $('imgPrev').src=dataUrl; $('imgPrev').classList.remove('hidden');
+      switchImgSrc('lib'); $('fileHint').textContent='AI 已识别并填入';
+      alert('AI 识别完成，已自动填充'+(r.title?('：'+r.title):'')+'，请核对后保存。'+(r.raw&&!r.title?'\nAI 原始返回：'+r.raw.slice(0,150):''));
+    }catch(err){ alert(err.message||'AI 识别失败'); }
+    finally{ if(btn){ btn.innerHTML=old; btn.disabled=false; } }
+  }
+  function fileToDataUrl(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
 
   // ============ 主题 ============
   function applyTheme(){
@@ -889,7 +1126,7 @@
     if(v==='home') renderAll(MODULES.show);
     if(v==='books') renderAll(MODULES.book);
     if(v==='profile') renderProfile();
-    if(v==='settings'){ syncNativeToggle(); renderAppManage(); syncAvatarAuthHint(); }
+    if(v==='settings'){ syncNativeToggle(); renderAppManage(); syncAvatarAuthHint(); syncAccountInfo(); syncOrientationUI(); syncAIConfig(); }
     $('sidebar').classList.remove('open'); $('sidebarBackdrop').classList.remove('open');
   }
   function toggleSidebarMobile(){ $('sidebar').classList.toggle('open'); $('sidebarBackdrop').classList.toggle('open'); }
@@ -897,26 +1134,37 @@
   function applySidebarState(){ if(localStorage.getItem('msl_sidebar_collapsed')==='1') $('sidebar').classList.add('collapsed'); }
 
   // ============ 横竖屏自适应（随系统切换） ============
+  // 横竖屏模式：auto(跟随设备) / portrait(强制竖屏) / landscape(强制横屏)
+  function orientationMode(){ return localStorage.getItem('msl_orient_mode') || 'auto'; }
+  function setOrientationMode(m){
+    localStorage.setItem('msl_orient_mode', m);
+    applyOrientation();
+    syncOrientationUI();
+  }
   function applyOrientation(){
-    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const mode=orientationMode();
+    let actual = window.matchMedia('(orientation: landscape)').matches; // true=横屏
+    // 手动模式覆盖真实朝向（用于用户自适应设备）
+    if(mode==='portrait') actual=false;
+    else if(mode==='landscape') actual=true;
+    const isLandscape = actual;
     const isSmall = window.innerWidth <= 768;
     const html = document.documentElement;
-    // 仅在小屏（手机）横屏时启用紧凑侧栏布局；桌面/平板横屏沿用原响应式
+    // 小屏横屏（含强制横屏）启用紧凑侧栏布局；桌面/平板沿用原响应式
     const on = isLandscape && isSmall;
     html.classList.toggle('landscape', on);
     if(on){
-      // 进入横屏紧凑态：关闭抽屉，侧栏常驻
       $('sidebar').classList.remove('open');
       $('sidebarBackdrop').classList.remove('open');
     }
     const badge=$('orientBadge'), txt=$('orientText');
     if(badge && txt){
-      // 桌面/平板也显示当前朝向
       const showBadge = (window.innerWidth > 768) || on;
       badge.style.display = showBadge ? 'inline-flex' : 'none';
-      txt.textContent = isLandscape ? '横屏' : '竖屏';
+      const label = mode!=='auto' ? (isLandscape?'横屏·强制':'竖屏·强制') : (isLandscape?'横屏':'竖屏');
+      txt.textContent = label;
       const ico = badge.querySelector('i');
-      if(ico) ico.className = isLandscape ? 'fa fa-mobile' : 'fa fa-mobile';
+      if(ico) ico.className = isLandscape ? 'fa fa-mobile fa-rotate-90' : 'fa fa-mobile';
     }
   }
 
@@ -1237,8 +1485,13 @@
     const hint=$('nativeHint'); if(hint) hint.textContent = nativeFirst() ? '已开启：优先唤醒本机 App，未安装时自动回退网页' : '已关闭：仅打开网页版';
   }
   function allApps(){
-    const presets=PRESET_APPS.map(a=>({id:'p_'+a.name, name:a.name, url:a.url, scheme:a.scheme||'', preset:true}));
-    return [...presets, ...customApps.map(a=>({...a, preset:false}))];
+    const presets=PRESET_APPS.map(a=>{
+      const id='p_'+a.name;
+      const ov=appOverrides[id]||{};
+      return {id, name:ov.name||a.name, url:a.url, scheme:a.scheme||'', preset:true, deleted:!!ov.deleted};
+    });
+    const visiblePresets=presets.filter(a=>!a.deleted);
+    return [...visiblePresets, ...customApps.map(a=>({...a, preset:false}))];
   }
   function renderAppShortcuts(){
     const wrap=$('appShortcuts'); if(!wrap) return;
@@ -1251,14 +1504,51 @@
   }
   function renderAppManage(){
     const wrap=$('appManageList'); if(!wrap) return;
-    if(!customApps.length){ wrap.innerHTML='<p class="text-xs text-muted-c">暂无自定义应用（侧栏预置 7 个）</p>'; return; }
-    wrap.innerHTML=customApps.map(a=>`
+    const apps=allApps();
+    if(!apps.length){ wrap.innerHTML='<p class="text-xs text-muted-c">暂无应用，点击下方添加</p>'; return; }
+    wrap.innerHTML=apps.map(a=>`
       <div class="flex items-center gap-3 p-2 rounded-xl soft-bg-50">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:var(--accent);color:#fff">${escapeHtml((a.name||'A')[0])}</div>
-        <div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${escapeHtml(a.name)}</div><div class="text-xs text-muted-c truncate">${escapeHtml(a.url)}${a.scheme?' · '+escapeHtml(a.scheme):''}</div></div>
-        <button onclick="openApp('${a.id}')" class="btn-outline px-3 py-1.5 text-xs">打开</button>
-        <button onclick="deleteCustomApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1" title="删除"><i class="fa fa-trash"></i></button>
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0" style="background:var(--accent);color:#fff">${escapeHtml((a.name||'A')[0])}</div>
+        <div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${escapeHtml(a.name)} ${a.preset?'<span class="text-xs text-muted-c">(预置)</span>':'<span class="text-xs text-muted-c">(自定义)</span>'}</div><div class="text-xs text-muted-c truncate">${escapeHtml(a.url)}${a.scheme?' · '+escapeHtml(a.scheme):''}</div></div>
+        <button onclick="openApp('${a.id}')" class="btn-outline px-3 py-1.5 text-xs shrink-0">打开</button>
+        <button onclick="renameApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1 shrink-0" title="改名"><i class="fa fa-pencil"></i></button>
+        <button onclick="deleteApp('${a.id}')" class="text-muted-c hover:opacity-70 px-1 shrink-0" title="删除"><i class="fa fa-trash"></i></button>
       </div>`).join('');
+  }
+  // 通用改名：预置用覆盖、自定义直接改
+  function renameApp(id){
+    const a=allApps().find(x=>x.id===id); if(!a) return;
+    const nm=prompt('修改应用名称', a.name);
+    if(nm===null) return;
+    const n=nm.trim(); if(!n){ alert('名称不能为空'); return; }
+    if(a.preset){
+      appOverrides[id]=Object.assign({}, appOverrides[id]||{}, {name:n});
+      saveAppOverrides();
+    } else {
+      const t=customApps.find(x=>x.id===id); if(t){ t.name=n; saveApps(); }
+    }
+    renderAppShortcuts(); renderAppManage(); buildAppDatalist();
+  }
+  // 通用删除：预置标记删除、自定义直接移除
+  function deleteApp(id){
+    const a=allApps().find(x=>x.id===id); if(!a) return;
+    if(!confirm('删除应用「'+a.name+'」？'+(a.preset?'（预置应用，可随时在下方恢复）':''))) return;
+    if(a.preset){
+      appOverrides[id]=Object.assign({}, appOverrides[id]||{}, {deleted:true, name:a.name});
+      saveAppOverrides();
+    } else {
+      customApps=customApps.filter(x=>x.id!==id); saveApps();
+    }
+    renderAppShortcuts(); renderAppManage(); buildAppDatalist();
+  }
+  // 恢复已删除的预置应用
+  function restorePresetApps(){
+    const deleted=Object.entries(appOverrides).filter(([k,v])=>v.deleted).map(([k])=>k);
+    if(!deleted.length){ alert('没有已删除的预置应用'); return; }
+    if(!confirm('恢复全部 '+deleted.length+' 个已删除的预置应用？')) return;
+    deleted.forEach(k=>{ delete appOverrides[k]; });
+    saveAppOverrides();
+    renderAppShortcuts(); renderAppManage(); buildAppDatalist();
   }
   // 打开应用：优先唤醒本机 App（scheme），未安装/失败则回退网页
   function openApp(id){
@@ -1299,11 +1589,6 @@
     let scheme='';
     if(sc && sc.trim()){ scheme=sc.trim(); }
     customApps.push({ id:uid(), name:name.trim(), url:u, scheme });
-    saveApps(); renderAppShortcuts(); renderAppManage(); buildAppDatalist();
-  }
-  function deleteCustomApp(id){
-    if(!confirm('删除该自定义应用？')) return;
-    customApps=customApps.filter(a=>a.id!==id);
     saveApps(); renderAppShortcuts(); renderAppManage(); buildAppDatalist();
   }
   function buildAppDatalist(){
@@ -1508,6 +1793,26 @@
   function syncAvatarAuthHint(){
     const el=$('avatarAuthHint');
     if(el) el.textContent = (currentUser && localStorage.getItem(avatarAuthKey())==='1') ? '已授权：可直接选择图片设为头像' : '未授权';
+  }
+  // 设置页：同步账号信息
+  function syncAccountInfo(){
+    if(!currentUser) return;
+    const acc=getUsers().find(a=>a.code===currentUser);
+    const s=$('setName'), e=$('setEmail'), c=$('setCode');
+    if(s) s.textContent = currentName || (acc?acc.name:'') || '-';
+    if(e) e.textContent = (acc && acc.email) ? acc.email : '未绑定';
+    if(c) c.textContent = currentUser;
+  }
+  // 设置页：同步横竖屏选择 UI
+  function syncOrientationUI(){
+    document.querySelectorAll('input[name="orientMode"]').forEach(r=>{ r.checked = (r.value===orientationMode()); });
+  }
+  // 设置页：同步 AI 配置 UI
+  function syncAIConfig(){
+    const cfg=getAIConfig();
+    const p=$('aiProvider'); if(p) p.value=cfg.provider;
+    const k=$('aiKey'); if(k) k.value=cfg.apiKey;
+    const m=$('aiModel'); if(m) m.value=cfg.model;
   }
 
   // ============ 数据导入/导出 ============
