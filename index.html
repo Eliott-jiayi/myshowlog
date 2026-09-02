@@ -122,24 +122,46 @@
     .scrollbar-thin::-webkit-scrollbar { width:6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 
-    /* ===== 三档响应式：手机 / 平板 / 电脑 =====
-       手机 <768px  ｜ 平板 768~1023px ｜ 电脑 ≥1024px */
-    /* 平板：侧栏正常、内容适中、网格 3 列 */
-    @media (min-width:768px) and (max-width:1023px){
+    /* ===== 三档响应式：竖屏 2~3 列 / 横屏 4~5 列 × 手机/平板/电脑 =====
+       列数依「宽高比（朝向）+ 屏幕宽度」自动调整 */
+    /* —— 手机竖屏（width<768 且 高>宽）：2 列 —— */
+    @media (max-width:767px){
+      #showGrid, #bookGrid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+    }
+    @media (max-width:767px) and (orientation: landscape){
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+    }
+    /* —— 平板（768~1023）：竖屏 3 列 / 横屏 4 列 —— */
+    @media (min-width:768px) and (max-width:1023px) and (orientation: portrait){
       main { padding:1rem 1.25rem; }
+      .max-w-6xl { max-width:56rem; }
       #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
       #recentList { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
-      .max-w-6xl { max-width:56rem; }
     }
-    /* 电脑：内容更宽、网格 4~5 列、间距更大 */
+    @media (min-width:768px) and (max-width:1023px){
+      main { padding:1rem 1.25rem; }
+      .max-w-6xl { max-width:56rem; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+      #recentList { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+    }
+    @media (min-width:768px) and (max-width:1023px) and (orientation: landscape){
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+    }
+    /* —— 电脑（≥1024）：竖屏 3 列 / 横屏 4 列 / 大宽屏 5 列 —— */
     @media (min-width:1024px){
       main { padding:1.5rem 2rem; }
       .max-w-6xl { max-width:72rem; }
       #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
       #recentList { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
     }
+    @media (min-width:1024px) and (orientation: portrait){
+      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+    }
     @media (min-width:1280px){
       #showGrid, #bookGrid { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+    }
+    @media (min-width:1280px) and (orientation: portrait){
+      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
     }
     /* 手机：登录弹窗与卡片更紧凑 */
     @media (max-width:767px){
@@ -937,8 +959,8 @@
 
   // ============ 状态 ============
   const data={shows:[],books:[]};
-  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null},
-             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null} };
+  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false},
+             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
@@ -1459,7 +1481,7 @@
     const img=it.img?`<img src="${it.img}" class="w-full aspect-[2/3] object-cover rounded-xl" onerror="this.parentNode.innerHTML='${fbEsc}'">`:fallback;
     let extra='';
     m.extraFields.forEach(f=>{ if(it[f.key]) extra += (extra?' · ':'') + escapeHtml(it[f.key]); });
-    const tags=(it.tags&&it.tags.length)?`<div class="flex flex-wrap gap-1 mt-1">${it.tags.slice(0,4).map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+    const tags=(it.tags&&it.tags.length)?`<div class="flex flex-wrap gap-1 mt-1">${it.tags.map(t=>`<span class="tag-item">${escapeHtml(t)}</span>`).join('')}</div>`:'';
     const isManual = ui[m.key].sort==='manual';
     const dragAttrs = isManual
       ? ` draggable="true" ondragstart="onCardDragStart(event,'${it.id}')" ondragend="onCardDragEnd(event)" ondragover="onCardDragOver(event)" ondrop="onCardDrop(event,'${m.key}','${it.id}')" ondragenter="onCardDragEnter(event)" ondragleave="onCardDragLeave(event)"`
@@ -1538,15 +1560,39 @@
     return arr;
   }
   function progressPct(m,it){ const t=it[m.tField], p=it[m.pField]||0; if(!t) return p?33:0; return Math.min(100,Math.round(p/t*100)); }
+  // 主页展示数量：竖屏 6 条 / 横屏 8 条（按朝向/尺寸自适应）
+  function homeGridLimit(){
+    const isLandscape = (window.innerWidth>window.innerHeight) || document.documentElement.classList.contains('landscape');
+    return isLandscape ? 8 : 6;
+  }
   function renderGrid(m){
-    const list=sortItems(m,filterItems(m));
+    const all=sortItems(m,filterItems(m));
     const grid=$(m.key+'Grid');
     const empty=$('emptyState_'+m.key);
     const total=itemsOf(m).length;
     empty.classList.toggle('hidden', total>0);
+    // 判断是否需要截断（仅：状态=全部 且 无关键词 且 无标签过滤 时应用 6/8 条上限）
+    const isHomeDefault = (ui[m.key].filter==='all') && !(ui[m.key].keyword||'').trim() && !ui[m.key].tagFilter && ui[m.key].sort!=='manual';
+    const limit = homeGridLimit();
+    const needTruncate = isHomeDefault && (all.length > limit);
+    const showMore = ui[m.key].showAll; // 用户手动点过「展开全部」
+    const list = needTruncate && !showMore ? all.slice(0, limit) : all;
     if(!list.length){ grid.innerHTML = total? `<div class="col-span-full text-center py-10 text-muted-c">没有匹配的${m.label}</div>` : ''; return; }
-    grid.innerHTML=list.map(it=>cardHTML(m,it)).join('');
+    const cards = list.map(it=>cardHTML(m,it)).join('');
+    const moreBtn = needTruncate && !showMore
+      ? `<div class="col-span-full flex justify-center pt-3">
+           <button onclick="showAllGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-down mr-1"></i>查看全部 ${all.length} 个${m.label}（当前展示 ${limit}）</button>
+         </div>`
+      : '';
+    const collapseBtn = needTruncate && showMore
+      ? `<div class="col-span-full flex justify-center pt-3">
+           <button onclick="collapseGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-up mr-1"></i>收起（共 ${all.length} 个）</button>
+         </div>`
+      : '';
+    grid.innerHTML = cards + moreBtn + collapseBtn;
   }
+  function showAllGrid(k){ ui[k].showAll=true; renderGrid(MODULES[k]); }
+  function collapseGrid(k){ ui[k].showAll=false; renderGrid(MODULES[k]); }
   function renderFilterTabs(m){
     const wrap=$('filterTabs_'+m.key); if(!wrap) return;
     const all=[['all','全部'], ...Object.entries(m.statuses).map(([k,[lbl]])=>[k,lbl])];
@@ -2871,11 +2917,15 @@
     }
   }
   window.addEventListener('DOMContentLoaded', init);
-  // 随系统横竖屏切换：监听朝向变化与窗口尺寸变化
-  window.addEventListener('orientationchange', ()=>setTimeout(applyOrientation, 120));
-  window.addEventListener('resize', ()=>{ applyOrientation(); applyDeviceClass(); });
+  // 随系统横竖屏切换：监听朝向变化与窗口尺寸变化；朝向/尺寸变更同步主页卡片数（横屏8/竖屏6）
+  function _afterOrientOrResize(){
+    applyOrientation(); applyDeviceClass();
+    try{ if($('showGrid')) renderGrid(MODULES.show); if($('bookGrid')) renderGrid(MODULES.book); }catch(_){}
+  }
+  window.addEventListener('orientationchange', ()=>setTimeout(_afterOrientOrResize, 120));
+  window.addEventListener('resize', ()=>_afterOrientOrResize());
   if(window.matchMedia && window.matchMedia('(orientation: landscape)').addEventListener){
-    window.matchMedia('(orientation: landscape)').addEventListener('change', applyOrientation);
+    window.matchMedia('(orientation: landscape)').addEventListener('change', _afterOrientOrResize);
   }
   // 监听地址栏 hash 变化（同一页面内打开分享链接时也能触发导入）
   window.addEventListener('hashchange', ()=>{
