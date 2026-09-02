@@ -121,6 +121,36 @@
     }
     .scrollbar-thin::-webkit-scrollbar { width:6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+    /* ===== 三档响应式：手机 / 平板 / 电脑 =====
+       手机 <768px  ｜ 平板 768~1023px ｜ 电脑 ≥1024px */
+    /* 平板：侧栏正常、内容适中、网格 3 列 */
+    @media (min-width:768px) and (max-width:1023px){
+      main { padding:1rem 1.25rem; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+      #recentList { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+      .max-w-6xl { max-width:56rem; }
+    }
+    /* 电脑：内容更宽、网格 4~5 列、间距更大 */
+    @media (min-width:1024px){
+      main { padding:1.5rem 2rem; }
+      .max-w-6xl { max-width:72rem; }
+      #showGrid, #bookGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+      #recentList { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+    }
+    @media (min-width:1280px){
+      #showGrid, #bookGrid { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+    }
+    /* 手机：登录弹窗与卡片更紧凑 */
+    @media (max-width:767px){
+      .card-ins { border-radius:14px; }
+      .modal-wrap .card-ins { padding:1.25rem; }
+      h2.text-xl { font-size:1.125rem; }
+    }
+    /* 设备指示徽标 */
+    #deviceBadge { font-size:12px; padding:2px 8px; border-radius:999px;
+      background:var(--soft); color:var(--muted); display:inline-flex; align-items:center; gap:5px; }
+    #deviceBadge i { font-size:11px; }
     /* 原生 App 可用指示点 */
     .app-dot{ position:absolute; right:-2px; bottom:-2px; width:8px; height:8px; border-radius:50%; background:#4ade80; border:1.5px solid var(--bg,#fff); box-shadow:0 0 0 1px rgba(0,0,0,.08); }
     /* 开关组件 */
@@ -149,16 +179,22 @@
       <button id="tabReg" onclick="switchAuthTab('reg')" class="text-muted-c pb-1">注册账号</button>
     </div>
     <div id="panelLogin">
-      <div class="mb-3"><label class="text-sm block mb-1">用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="输入用户名"/></div>
-      <div class="mb-4"><label class="text-sm block mb-1">密码</label><input id="loginPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="输入密码"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">用户名</label><input id="loginUser" class="input-ins w-full px-4 py-2.5" placeholder="输入用户名" oninput="onLoginNameInput()"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">密码</label><input id="loginPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="输入密码"/></div>
+      <div id="loginCodeWrap" class="mb-3 hidden">
+        <label class="text-sm block mb-1">账号编码</label>
+        <input id="loginCode" class="input-ins w-full px-4 py-2.5" placeholder="同名账号需填编码（如 MSL-AB12CD）"/>
+        <p class="text-xs text-muted-c mt-1">检测到同名账号，请填写注册时生成的账号编码以区分</p>
+      </div>
       <button onclick="doLogin()" class="btn-soft w-full py-2.5">登录</button>
     </div>
     <div id="panelReg" class="hidden">
-      <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5"/></div>
-      <div class="mb-4"><label class="text-sm block mb-1">设置密码</label><input id="regPwd" type="password" class="input-ins w-full px-4 py-2.5"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">设置用户名</label><input id="regUser" class="input-ins w-full px-4 py-2.5" placeholder="可同名，系统自动生成唯一账号编码"/></div>
+      <div class="mb-3"><label class="text-sm block mb-1">设置密码</label><input id="regPwd" type="password" class="input-ins w-full px-4 py-2.5" placeholder="设置密码"/></div>
+      <div class="mb-4"><label class="text-sm block mb-1">确认密码</label><input id="regPwd2" type="password" class="input-ins w-full px-4 py-2.5" placeholder="再次输入密码"/></div>
       <button onclick="doRegister()" class="btn-soft w-full py-2.5">注册</button>
     </div>
-    <div class="mt-4 text-xs text-muted-c">提示：本地模拟账号；如需云端同步需后端服务</div>
+    <div class="mt-4 text-xs text-muted-c">提示：数据存储在本机设备，像 APP 一样本地保存；账号编码用于同名区分，请妥善保存</div>
   </div>
 </div>
 
@@ -388,6 +424,7 @@
       <div class="flex items-center gap-2">
         <span class="font-medium text-lg" id="desktopTitle">剧集</span>
         <span id="orientBadge" class="text-xs px-2 py-0.5 rounded-full hidden items-center gap-1" style="background:var(--soft);color:var(--muted)"><i class="fa fa-mobile"></i><span id="orientText">竖屏</span></span>
+        <span id="deviceBadge" title="当前设备类型"><i class="fa fa-desktop"></i><span id="deviceText">电脑</span></span>
       </div>
       <button onclick="openShareModal()" class="btn-outline px-4 py-2 text-sm flex items-center gap-2"><i class="fa fa-share-alt"></i>分享</button>
     </div>
@@ -458,13 +495,18 @@
       <section data-view-panel="profile" class="hidden">
         <h2 class="text-xl font-medium mb-4">个人主页</h2>
         <div class="card-ins p-6 mb-6 flex flex-col sm:flex-row items-center gap-5">
-          <div id="profileAvatar" class="avatar w-20 h-20 rounded-full flex items-center justify-center text-3xl font-medium">U</div>
+          <div class="relative shrink-0">
+            <button id="profileAvatar" onclick="chooseAvatar()" class="avatar w-20 h-20 rounded-full flex items-center justify-center text-3xl font-medium overflow-hidden relative" title="点击更换头像">U</button>
+            <span class="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs" style="background:var(--accent);color:#fff"><i class="fa fa-camera"></i></span>
+            <input id="avatarInput" type="file" accept="image/*" class="hidden" onchange="onAvatarPicked(event)"/>
+          </div>
           <div class="flex-1 w-full">
             <div class="flex items-center gap-2">
               <input id="profileName" class="input-ins flex-1 px-3 py-2 text-lg font-medium"/>
               <button onclick="saveProfileName()" class="btn-soft px-4 py-2 text-sm">保存</button>
             </div>
             <p class="text-xs text-muted-c mt-2">登录账号：<span id="profileUser">@user</span></p>
+            <p class="text-xs text-muted-c">账号编码：<span id="profileCode" class="font-mono" style="color:var(--accent)">-</span> <button onclick="copyAccountCode()" class="text-xs hover:opacity-70" title="复制编码"><i class="fa fa-copy"></i></button></p>
             <p class="text-xs text-muted-c">加入时间：<span id="profileSince">-</span></p>
           </div>
         </div>
@@ -503,6 +545,16 @@
           <input id="authGalleryInput" type="file" accept="image/*" multiple class="hidden" onchange="onAuthGalleryUpload(event)"/>
           <button onclick="authorizeGallery()" class="btn-soft px-4 py-2 text-sm"><i class="fa fa-picture-o mr-1"></i>授权并选择本机图片</button>
           <p class="text-xs text-muted-c mt-2">导入的图片会自动降分辨率压缩（约 420×630）存入本机 IndexedDB。</p>
+          <div class="mt-4 pt-3 border-t" style="border-color:var(--border)">
+            <div class="flex items-center justify-between">
+              <div class="min-w-0 pr-2">
+                <div class="text-sm font-medium">头像图库授权</div>
+                <div class="text-xs text-muted-c" id="avatarAuthHint">未授权</div>
+              </div>
+              <button onclick="revokeAvatarAuth()" class="btn-outline px-3 py-1.5 text-xs"><i class="fa fa-refresh mr-1"></i>撤销/重新授权</button>
+            </div>
+            <p class="text-xs text-muted-c mt-2">首次设置头像时会弹窗请求访问图库；撤销后下次需重新授权。</p>
+          </div>
         </div>
 
         <div class="card-ins p-5 mb-6">
@@ -584,13 +636,15 @@
   const data={shows:[],books:[]};
   const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null},
              book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null} };
-  let currentUser=null, activeView='home', profile={}, records=[], currentPlatform='all',
+  let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
 
   // ============ 工具 ============
   const $ = id => document.getElementById(id);
   const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  // 生成唯一账号编码：MSL-XXXXXX（同名账号靠编码区分）
+  const genAccountCode = () => 'MSL-'+Math.random().toString(36).slice(2,8).toUpperCase();
   const userAppsKey = () => STORAGE_APPS+currentUser;
   const userRecordsKey = () => 'msl_records_'+currentUser;
   const userProfileKey = () => STORAGE_PROFILE+currentUser;
@@ -700,32 +754,87 @@
     if(login){ $('tabLogin').style.borderColor='var(--accent)'; $('tabReg').style.borderColor='transparent'; $('tabLogin').classList.remove('text-muted-c'); $('tabReg').classList.add('text-muted-c'); }
     else { $('tabReg').style.borderColor='var(--accent)'; $('tabLogin').style.borderColor='transparent'; $('tabReg').classList.remove('text-muted-c'); $('tabLogin').classList.add('text-muted-c'); }
   }
-  function getUsers(){ try{ return JSON.parse(localStorage.getItem(STORAGE_USERS)||'{}'); }catch(e){ return {}; } }
+  // 账号存储为数组（支持同名），每条 {code,name,pwd,since}；code 为唯一键，作为数据存储后缀
+  function getUsers(){
+    try{ const v=JSON.parse(localStorage.getItem(STORAGE_USERS)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; }
+  }
   function setUsers(u){ localStorage.setItem(STORAGE_USERS, JSON.stringify(u)); }
+  function findAccountsByName(name){ return getUsers().filter(a=>a.name===name); }
+  // 登录面板：输入用户名时检测同名，决定是否显示账号编码输入框
+  function onLoginNameInput(){
+    const name=$('loginUser').value.trim();
+    const dup = name && findAccountsByName(name).length>1;
+    $('loginCodeWrap').classList.toggle('hidden', !dup);
+  }
+  // 一次性迁移：旧版对象格式 {name:pwd} → 数组 [{code,name,pwd,since}]，并按 code 重新键化本地数据
+  function migrateOldUsers(){
+    let raw=localStorage.getItem(STORAGE_USERS); if(!raw) return;
+    let parsed; try{ parsed=JSON.parse(raw); }catch(e){ return; }
+    if(!parsed || Array.isArray(parsed)) return; // 已是新格式或空
+    const prefixes=[STORAGE_PROFILE, STORAGE_APPS, 'msl_records_', MODULES.show.storageKey(''), MODULES.book.storageKey('')];
+    const oldSession=localStorage.getItem(STORAGE_SESSION);
+    const arr=[];
+    for(const [name,pwd] of Object.entries(parsed)){
+      const code=genAccountCode();
+      arr.push({code, name, pwd, since:Date.now()});
+      prefixes.forEach(p=>{ const v=localStorage.getItem(p+name); if(v!==null){ localStorage.setItem(p+code, v); localStorage.removeItem(p+name); } });
+      galleryRekeyUser(name, code);
+      if(oldSession===name) localStorage.setItem(STORAGE_SESSION, code);
+    }
+    setUsers(arr);
+  }
+  // 重新键化 IndexedDB 图库的 user 字段（迁移用）
+  async function galleryRekeyUser(oldUser, newUser){
+    if(oldUser===newUser) return;
+    try{
+      const db=await openGalleryDB();
+      await new Promise((resolve,reject)=>{
+        const tx=db.transaction('images','readwrite');
+        const store=tx.objectStore('images');
+        const req=store.getAll();
+        req.onsuccess=()=>{ req.result.filter(r=>r.user===oldUser).forEach(r=>{ r.user=newUser; store.put(r); }); };
+        tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error);
+      });
+    }catch(e){}
+  }
   function doRegister(){
-    const u=$('regUser').value.trim(), p=$('regPwd').value;
-    if(!u||!p){ alert('请填写用户名和密码'); return; }
+    const name=$('regUser').value.trim(), p=$('regPwd').value, p2=$('regPwd2').value;
+    if(!name||!p){ alert('请填写用户名和密码'); return; }
+    if(p!==p2){ alert('两次密码不一致，请重新输入'); return; }
+    const code=genAccountCode();
     const users=getUsers();
-    if(users[u]){ alert('用户名已存在'); return; }
-    users[u]=p; setUsers(users);
-    alert('注册成功，请登录');
-    switchAuthTab('login'); $('loginUser').value=u;
+    users.push({code, name, pwd:p, since:Date.now()});
+    setUsers(users);
+    // 直接登录（数据按 code 存储在本机）
+    currentUser=code; currentName=name; localStorage.setItem(STORAGE_SESSION, code);
+    $('regUser').value=''; $('regPwd').value=''; $('regPwd2').value='';
+    enterApp();
+    setTimeout(()=>alert('注册成功！\n你的账号编码：'+code+'\n（同名账号用此编码区分，可在「我的」查看，请妥善保存）'), 200);
   }
   function doLogin(){
-    const u=$('loginUser').value.trim(), p=$('loginPwd').value;
-    if(!u||!p){ alert('请填写用户名和密码'); return; }
-    const users=getUsers();
-    if(!users[u] || users[u]!==p){ alert('用户名或密码错误'); return; }
-    currentUser=u; localStorage.setItem(STORAGE_SESSION, u);
+    const name=$('loginUser').value.trim(), p=$('loginPwd').value;
+    if(!name||!p){ alert('请填写用户名和密码'); return; }
+    let matches=findAccountsByName(name).filter(a=>a.pwd===p);
+    if(matches.length===0){ alert('用户名或密码错误'); return; }
+    if(matches.length>1){
+      // 同名 + 同密码：必须用账号编码区分
+      const code=($('loginCode').value||'').trim().toUpperCase();
+      if(!code){ alert('检测到多个同名账号，请填写账号编码以区分'); return; }
+      const hit=matches.find(a=>a.code.toUpperCase()===code);
+      if(!hit){ alert('账号编码不正确'); return; }
+      matches=[hit];
+    }
+    const acc=matches[0];
+    currentUser=acc.code; currentName=acc.name; localStorage.setItem(STORAGE_SESSION, acc.code);
     enterApp();
   }
   function logout(){
     if(!confirm('确定退出登录？')) return;
     localStorage.removeItem(STORAGE_SESSION);
-    currentUser=null; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[];
+    currentUser=null; currentName=''; data.shows=[]; data.books=[]; profile={}; records=[]; customApps=[];
     $('appShell').classList.add('hidden');
     $('loginModal').classList.remove('hidden');
-    $('loginUser').value=''; $('loginPwd').value='';
+    $('loginUser').value=''; $('loginPwd').value=''; $('loginCode').value=''; $('loginCodeWrap').classList.add('hidden');
   }
   function enterApp(){
     $('loginModal').classList.add('hidden');
@@ -746,7 +855,7 @@
   function loadItems(m){ try{ data[m.stateKey]=JSON.parse(localStorage.getItem(m.storageKey(currentUser))||'[]'); }catch(e){ data[m.stateKey]=[]; } }
   function saveItems(m){ localStorage.setItem(m.storageKey(currentUser), JSON.stringify(itemsOf(m))); refreshModule(m); }
   function refreshModule(m){ if(activeView===m.viewName){ renderFilterTabs(m); renderStats(m); renderTagFilters(m); renderGrid(m); } }
-  function loadProfile(){ try{ profile=JSON.parse(localStorage.getItem(userProfileKey())||'{}'); }catch(e){ profile={}; } if(!profile.name) profile.name=currentUser; }
+  function loadProfile(){ try{ profile=JSON.parse(localStorage.getItem(userProfileKey())||'{}'); }catch(e){ profile={}; } if(!profile.name) profile.name=currentName||currentUser||'用户'; }
   function saveProfile(){ localStorage.setItem(userProfileKey(), JSON.stringify(profile)); }
   function loadRecords(){ try{ records=JSON.parse(localStorage.getItem(userRecordsKey())||'[]'); }catch(e){ records=[]; } }
   function saveRecords(){ localStorage.setItem(userRecordsKey(), JSON.stringify(records)); }
@@ -780,7 +889,7 @@
     if(v==='home') renderAll(MODULES.show);
     if(v==='books') renderAll(MODULES.book);
     if(v==='profile') renderProfile();
-    if(v==='settings'){ syncNativeToggle(); renderAppManage(); }
+    if(v==='settings'){ syncNativeToggle(); renderAppManage(); syncAvatarAuthHint(); }
     $('sidebar').classList.remove('open'); $('sidebarBackdrop').classList.remove('open');
   }
   function toggleSidebarMobile(){ $('sidebar').classList.toggle('open'); $('sidebarBackdrop').classList.toggle('open'); }
@@ -808,6 +917,21 @@
       txt.textContent = isLandscape ? '横屏' : '竖屏';
       const ico = badge.querySelector('i');
       if(ico) ico.className = isLandscape ? 'fa fa-mobile' : 'fa fa-mobile';
+    }
+  }
+
+  // ============ 设备类型自适应（手机/平板/电脑） ============
+  function applyDeviceClass(){
+    const w = window.innerWidth;
+    let type, icon, label;
+    if(w < 768){ type='phone'; icon='fa-mobile'; label='手机'; }
+    else if(w < 1024){ type='pad'; icon='fa-tablet'; label='平板'; }
+    else { type='desktop'; icon='fa-desktop'; label='电脑'; }
+    document.documentElement.setAttribute('data-device', type);
+    const badge=$('deviceBadge'), txt=$('deviceText');
+    if(badge && txt){
+      txt.textContent = label;
+      const ico = badge.querySelector('i'); if(ico) ico.className = 'fa '+icon;
     }
   }
 
@@ -1288,17 +1412,18 @@
 
   // ============ 个人主页 ============
   function renderMiniProfile(){
-    const name=profile.name||currentUser||'用户';
+    const name=profile.name||currentName||'用户';
     $('miniName').textContent=name;
-    $('miniUser').textContent='@'+(currentUser||'');
-    $('miniAvatar').textContent=(name[0]||'U').toUpperCase();
+    $('miniUser').textContent='@'+(currentName||'');
+    renderAvatarInto($('miniAvatar'), name);
   }
   function renderProfile(){
-    const name=profile.name||currentUser||'用户';
+    const name=profile.name||currentName||'用户';
     $('profileName').value=name;
-    $('profileUser').textContent='@'+(currentUser||'');
+    $('profileUser').textContent='@'+(currentName||'');
+    $('profileCode').textContent=currentUser||'-';
     $('profileSince').textContent = profile.since ? new Date(profile.since).toLocaleDateString('zh-CN') : '今天';
-    $('profileAvatar').textContent=(name[0]||'U').toUpperCase();
+    renderAvatarInto($('profileAvatar'), name);
     $('pStatShows').textContent=data.shows.length;
     $('pStatBooks').textContent=data.books.length;
     const rated=[...data.shows,...data.books].filter(x=>x.rating>0);
@@ -1313,6 +1438,19 @@
       return `<div class="card-ins card-hover cursor-pointer overflow-hidden" onclick="openDetail('${m.key}','${it.id}')"><div class="p-2">${img}<div class="text-xs font-medium truncate mt-1">${escapeHtml(it.title)}</div><div class="text-xs text-muted-c">${m.label}</div></div></div>`;
     }).join('') : '<p class="text-muted-c text-sm col-span-full">暂无记录</p>';
   }
+  // 渲染头像：有图显图，否则首字母
+  function renderAvatarInto(el, name){
+    if(!el) return;
+    if(profile.avatar){
+      el.innerHTML=`<img src="${profile.avatar}" class="w-full h-full object-cover" alt="头像"/>`;
+    } else {
+      el.textContent=(name[0]||'U').toUpperCase();
+    }
+  }
+  function copyAccountCode(){
+    if(!currentUser) return;
+    navigator.clipboard?.writeText(currentUser).then(()=>alert('账号编码已复制：'+currentUser), ()=>prompt('请复制：', currentUser));
+  }
   function saveProfileName(){
     const v=$('profileName').value.trim();
     if(!v){ alert('名字不能为空'); return; }
@@ -1320,13 +1458,64 @@
     saveProfile(); renderMiniProfile(); renderProfile();
     alert('已保存');
   }
+  // ============ 头像设置（首次授权弹窗 + 图库选择） ============
+  function avatarAuthKey(){ return 'msl_avatar_auth_'+currentUser; }
+  function chooseAvatar(){
+    if(!currentUser){ alert('请先登录'); return; }
+    // 首次使用弹窗授权（模拟 APP 权限申请流程），授权后不再提示
+    if(localStorage.getItem(avatarAuthKey())!=='1'){
+      if(!confirm('需要访问本机图库来设置头像。\n是否允许「MyShowLog」访问你的图片？\n\n（授权后可在设置中撤销）')) return;
+      localStorage.setItem(avatarAuthKey(), '1');
+    }
+    $('avatarInput').click();
+  }
+  async function onAvatarPicked(e){
+    const file=e.target.files&&e.target.files[0]; e.target.value='';
+    if(!file) return;
+    try{
+      const dataUrl=await compressForAvatar(file);
+      profile.avatar=dataUrl; if(!profile.since) profile.since=Date.now();
+      saveProfile(); renderMiniProfile(); renderProfile();
+      alert('头像已更新');
+    }catch(err){ alert('头像设置失败：'+err.message); }
+  }
+  // 头像压缩：方形裁剪 + 降分辨率，存为 dataURL
+  function compressForAvatar(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          const size=Math.min(img.width, img.height);
+          const out=256; // 输出 256x256
+          const sx=(img.width-size)/2, sy=(img.height-size)/2;
+          const canvas=document.createElement('canvas');
+          canvas.width=out; canvas.height=out;
+          canvas.getContext('2d').drawImage(img, sx, sy, size, size, 0, 0, out, out);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror=reject; img.src=ev.target.result;
+      };
+      reader.onerror=reject; reader.readAsDataURL(file);
+    });
+  }
+  function revokeAvatarAuth(){
+    if(!currentUser){ alert('请先登录'); return; }
+    localStorage.removeItem(avatarAuthKey());
+    syncAvatarAuthHint();
+    alert('已撤销头像图库授权，下次设置头像将重新请求授权');
+  }
+  function syncAvatarAuthHint(){
+    const el=$('avatarAuthHint');
+    if(el) el.textContent = (currentUser && localStorage.getItem(avatarAuthKey())==='1') ? '已授权：可直接选择图片设为头像' : '未授权';
+  }
 
   // ============ 数据导入/导出 ============
   function exportData(){
-    const payload={ exportedAt:new Date().toISOString(), user:currentUser, shows:data.shows, books:data.books, records, customApps, profile };
+    const payload={ exportedAt:new Date().toISOString(), user:currentName, code:currentUser, shows:data.shows, books:data.books, records, customApps, profile };
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const link=document.createElement('a');
-    link.download='myshowlog-'+currentUser+'-'+Date.now()+'.json';
+    link.download='myshowlog-'+(currentName||currentUser)+'-'+Date.now()+'.json';
     link.href=URL.createObjectURL(blob); link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -1397,7 +1586,7 @@
     const shows = itemsOf(MODULES.show);
     const books = itemsOf(MODULES.book);
     return {
-      v:1, app:'MyShowLog', from: currentUser, at: Date.now(),
+      v:1, app:'MyShowLog', from: currentName||currentUser, at: Date.now(),
       shows: shows.map(it=>({ t:it.title, ty:it.type, st:it.status, p:it[MODULES.show.pField]||0, tot:it[MODULES.show.tField]||0, r:it.rating||0, tg:(it.tags||[]).slice(0,8), au:'' })),
       books: books.map(it=>({ t:it.title, ty:it.type, st:it.status, p:it[MODULES.book.pField]||0, tot:it[MODULES.book.tField]||0, r:it.rating||0, tg:(it.tags||[]).slice(0,8), au:it.author||'' }))
     };
@@ -1524,11 +1713,16 @@
 
   // ============ 初始化 ============
   function init(){
-    applyTheme(); applySidebarState(); applyOrientation();
+    applyTheme(); applySidebarState(); applyOrientation(); applyDeviceClass();
     setupPWA();
     syncNativeToggle(); renderAppShortcuts();
+    migrateOldUsers(); // 迁移旧版同名互斥账号为数组+编码格式
     const sess=localStorage.getItem(STORAGE_SESSION);
-    if(sess){ currentUser=sess; enterApp(); }
+    if(sess){
+      const acc=getUsers().find(a=>a.code===sess);
+      if(acc){ currentUser=sess; currentName=acc.name; enterApp(); }
+      else{ localStorage.removeItem(STORAGE_SESSION); $('appShell').classList.add('hidden'); $('loginModal').classList.remove('hidden'); }
+    }
     else{ $('appShell').classList.add('hidden'); $('loginModal').classList.remove('hidden'); }
     // 检测分享链接
     const hash = window.location.hash || '';
@@ -1547,7 +1741,7 @@
   window.addEventListener('DOMContentLoaded', init);
   // 随系统横竖屏切换：监听朝向变化与窗口尺寸变化
   window.addEventListener('orientationchange', ()=>setTimeout(applyOrientation, 120));
-  window.addEventListener('resize', applyOrientation);
+  window.addEventListener('resize', ()=>{ applyOrientation(); applyDeviceClass(); });
   if(window.matchMedia && window.matchMedia('(orientation: landscape)').addEventListener){
     window.matchMedia('(orientation: landscape)').addEventListener('change', applyOrientation);
   }
