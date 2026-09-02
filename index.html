@@ -554,9 +554,11 @@
             <option value="manual">自主拖拽</option><option value="rating">评分最高</option>
             <option value="progress">进度最多</option>
           </select>
+          <button id="dirShowBtn" onclick="toggleTitleDir('show')" class="btn-outline px-3 py-2.5 text-sm shrink-0 hidden" title="切换正序/倒序"><i class="fa fa-sort-amount-asc mr-1"></i><span id="dirShowText">正序</span></button>
         </div>
         <div id="showTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="showGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        <div id="showPagination" class="mt-5 flex flex-wrap items-center justify-center gap-2"></div>
         <div id="emptyState_show" class="hidden text-center py-16 text-muted-c">
           <i class="fa fa-film text-5xl mb-3 opacity-40"></i>
           <p>还没有记录任何剧集</p>
@@ -585,9 +587,11 @@
             <option value="manual">自主拖拽</option><option value="rating">评分最高</option>
             <option value="progress">进度最多</option>
           </select>
+          <button id="dirBookBtn" onclick="toggleTitleDir('book')" class="btn-outline px-3 py-2.5 text-sm shrink-0 hidden" title="切换正序/倒序"><i class="fa fa-sort-amount-asc mr-1"></i><span id="dirBookText">正序</span></button>
         </div>
         <div id="bookTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        <div id="bookPagination" class="mt-5 flex flex-wrap items-center justify-center gap-2"></div>
         <div id="emptyState_book" class="hidden text-center py-16 text-muted-c">
           <i class="fa fa-book text-5xl mb-3 opacity-40"></i>
           <p>书架还是空的</p>
@@ -959,8 +963,8 @@
 
   // ============ 状态 ============
   const data={shows:[],books:[]};
-  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false},
-             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false} };
+  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1},
+             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[], starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
@@ -1488,10 +1492,10 @@
       : '';
     const dragHint = isManual ? ' title="拖拽以调整顺序"' : '';
     return `<div class="card-ins card-hover overflow-hidden cursor-pointer${isManual?' card-drag-mode':''}"${dragAttrs}${dragHint} data-card-id="${it.id}" onclick="openDetail('${m.key}','${it.id}')">
-      <div class="p-3"><div class="relative">${img}<div class="absolute top-2 right-2">${statusBadge(m,it.status)}</div>${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
-      <div class="mt-3"><h3 class="font-medium truncate">${escapeHtml(it.title)}</h3>
-      <div class="text-xs text-muted-c mt-0.5">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+escapeHtml(extra):''}</div>
-      <div class="text-xs mt-1">${starStr(it.rating||0)}</div>
+      <div class="p-2.5 sm:p-3"><div class="relative">${img}<div class="absolute top-2 right-2">${statusBadge(m,it.status)}</div>${isManual?'<div class="absolute bottom-2 left-2 text-xs px-1.5 py-0.5 rounded bg-black/40 text-white"><i class="fa fa-arrows"></i></div>':''}</div>
+      <div class="mt-3"><h3 class="font-medium text-[14px] sm:text-sm leading-snug text-balance" style="word-break:break-word">${escapeHtml(it.title)}</h3>
+      <div class="text-[11px] sm:text-xs text-muted-c mt-1">${typeLabel(m,it.type)} · ${progressStr(m,it)}${extra?' · '+escapeHtml(extra):''}</div>
+      <div class="text-[11px] sm:text-xs mt-1">${starStr(it.rating||0)}</div>
       ${tags}</div></div></div>`;
   }
   // 网格卡片拖拽（自主拖拽排序模式）
@@ -1541,23 +1545,101 @@
   function loadManualOrder(m){ try{ return JSON.parse(localStorage.getItem(manualOrderKey(m))||'[]'); }catch(e){ return []; } }
   function saveManualOrder(m, arr){ localStorage.setItem(manualOrderKey(m), JSON.stringify(arr)); }
   function getManualOrder(m){ if(!ui[m.key].manualOrder) ui[m.key].manualOrder=loadManualOrder(m); return ui[m.key].manualOrder; }
+  // 从标题提取季数：如「第一季 / 第2季 / Season 3 / S2 / 第二季 / 三体Ⅱ / 指环王Ⅲ」→ 数字；未匹配返回 Infinity
+  function extractSeason(title){
+    const t = (title||'').toString();
+    if(!t) return Infinity;
+    let m;
+    const rnMap={'Ⅰ':1,'Ⅱ':2,'Ⅲ':3,'Ⅳ':4,'Ⅴ':5,'Ⅵ':6,'Ⅶ':7,'Ⅷ':8,'Ⅸ':9,'Ⅹ':10,'Ⅺ':11,'Ⅻ':12};
+    m = t.match(/第\s*(\d+)\s*[季部册集篇章弹]/); if(m) return parseInt(m[1],10);
+    // 第 中文数字 季/部...
+    m = t.match(/第\s*([一二三四五六七八九十百零壹贰叁肆伍陆柒捌玖两]+)\s*[季部册集篇章弹]/);
+    if(m){ const cnMap={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'零':0,'百':100,'壹':1,'贰':2,'叁':3,'肆':4,'伍':5,'陆':6,'柒':7,'捌':8,'玖':9};
+      let r=0,cur=0; for(const ch of m[1]){ if(cnMap[ch]!==undefined){ const v=cnMap[ch]; if(v===10){ r=(r||1)*10; cur=0; } else if(v===100){ r=(r||1)*100; cur=0; } else { r=r+v; cur=v; } } } if(r) return r; }
+    // 第 + 罗马数字 季/部（如 第Ⅱ季、第Ⅲ部）
+    m = t.match(/第\s*([ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]{1,3})\s*[季部册集篇章弹]/);
+    if(m){ let r=0; for(const ch of m[1]){ if(rnMap[ch]!==undefined) r=Math.max(1,(r>=10&&rnMap[ch]<10)?r+rnMap[ch]:(rnMap[ch]>=10?rnMap[ch]:rnMap[ch])); } if(r) return r; }
+    m = t.match(/(?:season|se|s)\s*(\d{1,2})/i); if(m) return parseInt(m[1],10);
+    m = t.match(/\(?(\d{1,2})\s*(?:nd|th|rd|st)?\s*[季sS部]/); if(m) return parseInt(m[1],10);
+    // 末尾带纯数字的季：例如「咒术回战 2」
+    m = t.match(/[\s\-](\d{1,2})$/); if(m) return parseInt(m[1],10);
+    // 罗马数字独立（如「三体Ⅱ」「三体Ⅲ 死神永生」「指环王Ⅲ 王者归来」）：找到首个连续Ⅰ-Ⅻ 块
+    m = t.match(/[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]+/g);
+    if(m){
+      let best=Infinity;
+      for(const blk of m){
+        // 单字符：直接查表；多字符：组合（Ⅻ=12, Ⅺ=11, Ⅸ=9 已是单字符，其余多按加算如 Ⅲ=3, Ⅱ=2 依然是单字符）
+        // 为兼容用户自定义 ⅡⅢ（极少见），逐位用查表加总（每个单字符 < 10 则加，等于 10 的 Ⅹ 表示 10，Ⅻ=12 等）
+        let v=0;
+        for(const ch of blk){ if(rnMap[ch]!==undefined) v = (v<10 && rnMap[ch]<10 && rnMap[ch]!==10) ? v+rnMap[ch] : Math.max(v, rnMap[ch]); }
+        if(v>=1 && v<=12) best = Math.min(best, v); // 取最小编号（优先匹配到的第一卷/季）
+      }
+      if(isFinite(best)) return best;
+    }
+    return Infinity;
+  }
+  // 从标题提取「基准名」（去掉季后缀、罗马数字卷标），用于同名字符串比较
+  function normalizeTitle(title){
+    return (title||'').toString()
+      .replace(/\s*第\s*[一二三四五六七八九十百零壹贰叁肆伍陆柒捌玖两\dⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]+\s*[季部册集篇章弹]\s*$/i,'')
+      .replace(/\s*(?:season|se|s)\s*\d{1,2}\s*$/i,'')
+      .replace(/\s*[\s\-]\d{1,2}\s*$/,'')
+      // 仅移除「位于尾部」的罗马数字（三体Ⅱ → 三体），不移除后跟副标题的情况（三体Ⅱ 黑暗森林 保留 Ⅱ，利用 Ⅱ<Ⅲ Unicode 保证系列正序）
+      // 允许后面跟 书名号右/括号/中文句号等 末尾标点
+      .replace(/\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]+\s*(?=[》）)\]】。，,；;\s]*$/g, '')
+      .trim();
+  }
   function sortItems(m,list){
     const arr=[...list], s=ui[m.key].sort;
-    if(s==='recent') arr.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    else if(s==='rating') arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
-    else if(s==='title') arr.sort((a,b)=>(a.title||'').localeCompare(b.title||'','zh'));
-    else if(s==='progress') arr.sort((a,b)=>progressPct(m,b)-progressPct(m,a));
-    else if(s==='manual'){
+    const dir = ui[m.key].titleDir==='desc' ? -1 : 1;
+    if(s==='recent') arr.sort((a,b)=>dir*((b.createdAt||0)-(a.createdAt||0)));
+    else if(s==='rating') arr.sort((a,b)=>dir*((b.rating||0)-(a.rating||0)));
+    else if(s==='progress') arr.sort((a,b)=>dir*(progressPct(m,b)-progressPct(m,a)));
+    else if(s==='title'){
+      arr.sort((a,b)=>{
+        const na=normalizeTitle(a.title||''), nb=normalizeTitle(b.title||'');
+        const base = na.localeCompare(nb, 'zh');
+        if(base!==0) return dir*base;
+        // 同名：按季数字小到大
+        const sa=extractSeason(a.title||''), sb=extractSeason(b.title||'');
+        if(sa!==sb) return dir*(sa-sb);
+        // 仍相同：按时间保持稳定
+        return dir*((a.createdAt||0)-(b.createdAt||0));
+      });
+    } else if(s==='manual'){
       const order=getManualOrder(m);
       const idxMap=new Map(order.map((id,i)=>[id,i]));
       arr.sort((a,b)=>{
         const ai=idxMap.has(a.id)?idxMap.get(a.id):1e9;
         const bi=idxMap.has(b.id)?idxMap.get(b.id):1e9;
         if(ai!==bi) return ai-bi;
-        return (b.createdAt||0)-(a.createdAt||0); // 未排序的按时间补
+        return (b.createdAt||0)-(a.createdAt||0);
       });
     }
     return arr;
+  }
+  // 获取标题分组首字母（中文用 localeCompare 的第一个 pinyin 字母兜底：取 Intl.Collator 或直接用首字；这里用中文 -> 拼音首字母表或回退到 '#', 并兼容英文直接取首字母）
+  function firstLetterOf(title){
+    const t = (title||'').toString().trim();
+    if(!t) return '#';
+    const c = t.charAt(0);
+    // 数字
+    if(/[0-9]/.test(c)) return '#';
+    // 英文
+    if(/[a-zA-Z]/.test(c)) return c.toUpperCase();
+    // 中文：取 Intl 分组名（简体中文拼音排序首字母），回退 #
+    try{
+      const segments = new Intl.Collator('zh-Hans-CN',{usage:'sort',sensitivity:'base'});
+      const letters='ABCDEFGHJKLMNOPQRSTWXYZ';
+      // 二分/顺序取：比较 c 与「阿玻次的鹅佛哥喝衣鸡棵了摸呢喔坡期日斯特乌威西衣资」
+      const pinyinFirst = [
+        ['A','阿'],['B','八'],['C','擦'],['D','搭'],['E','鹅'],['F','发'],['G','噶'],['H','哈'],['J','机'],['K','卡'],['L','拉'],['M','妈'],['N','拿'],['O','哦'],['P','啪'],['Q','七'],['R','然'],['S','三'],['T','他'],['W','挖'],['X','西'],['Y','压'],['Z','杂']
+      ];
+      for(let i=pinyinFirst.length-1;i>=0;i--){
+        if(segments.compare(c, pinyinFirst[i][1]) >= 0) return pinyinFirst[i][0];
+      }
+      return '#';
+    }catch(e){ return '#'; }
   }
   function progressPct(m,it){ const t=it[m.tField], p=it[m.pField]||0; if(!t) return p?33:0; return Math.min(100,Math.round(p/t*100)); }
   // 主页展示数量：竖屏 6 条 / 横屏 8 条（按朝向/尺寸自适应）
@@ -1565,34 +1647,173 @@
     const isLandscape = (window.innerWidth>window.innerHeight) || document.documentElement.classList.contains('landscape');
     return isLandscape ? 8 : 6;
   }
+  // ===== 分页 / 首字母排序方向 辅助函数 =====
+  function resetGridPages(k){ ui[k].letterPage=1; ui[k].itemPage=1; }
+  function toggleTitleDir(k){
+    if(ui[k].sort!=='title') return;
+    ui[k].titleDir = ui[k].titleDir==='desc' ? 'asc' : 'desc';
+    syncDirBtn(k); resetGridPages(k); renderGrid(MODULES[k]);
+  }
+  function syncDirBtn(k){
+    const btn=k==='show'?$('dirShowBtn'):$('dirBookBtn');
+    const txt=k==='show'?$('dirShowText'):$('dirBookText');
+    if(!btn||!txt) return;
+    if(ui[k].sort==='title'){
+      btn.classList.remove('hidden');
+      const d=ui[k].titleDir==='desc';
+      txt.textContent=d?'倒序':'正序';
+      const ic=btn.querySelector('i'); if(ic) ic.className=d?'fa fa-sort-amount-desc mr-1':'fa fa-sort-amount-asc mr-1';
+    } else btn.classList.add('hidden');
+  }
+  // 根据屏幕尺寸估算每页数量：cols * ~4 行
+  function gridPageSize(){
+    const w=window.innerWidth;
+    const cols=w>=1024?4:(w>=640?3:2);
+    return cols*4;
+  }
+  // 通用页码条（首页末页 + 当前前后窗口 + 省略号，按钮 disabled 双保险）
+  function renderPaginator(cur,total,onGo,onDelta){
+    if(total<=1) return '';
+    cur=Math.min(Math.max(1,cur),total);
+    let html='<div class="w-full flex flex-wrap items-center justify-center gap-1.5">';
+    html+=`<button onclick="(${onDelta(-1)})" class="btn-outline px-3 py-1.5 text-sm" ${cur<=1?'disabled style="opacity:.45;cursor:not-allowed"':''}><i class="fa fa-angle-left"></i></button>`;
+    const pages=[]; const win=1;
+    for(let i=1;i<=total;i++){
+      if(i===1||i===total||(i>=cur-win&&i<=cur+win)) pages.push(i);
+      else if(pages[pages.length-1]!=='...') pages.push('...');
+    }
+    for(const p of pages){
+      if(p==='...') html+=`<span class="px-2 text-muted-c text-sm">…</span>`;
+      else html+=`<button onclick="(${onGo(p)})" class="min-w-8 h-8 px-2 text-sm rounded-lg ${p===cur?'btn-soft ring-2 ring-primary-c':'btn-outline'}" ${p===cur?'aria-current="page"':''}>${p}</button>`;
+    }
+    html+=`<button onclick="(${onDelta(1)})" class="btn-outline px-3 py-1.5 text-sm" ${cur>=total?'disabled style="opacity:.45;cursor:not-allowed"':''}><i class="fa fa-angle-right"></i></button>`;
+    html+=`<span class="ml-2 text-xs text-muted-c">${cur} / ${total}</span>`;
+    html+='</div>';
+    return html;
+  }
+  // ===== 翻页导航（统一入口，边界校验双保险） =====
+  function changeLetterPage(k,delta){
+    // 此处 groups/letters 在 renderGrid 中会重算并重新 clamp，这里先给 letterPage 一个合理变化
+    ui[k].letterPage=Math.max(1, ui[k].letterPage+delta);
+    ui[k].itemPage=1; renderGrid(MODULES[k]);
+  }
+  function goLetterPage(k,target){ ui[k].letterPage=Math.max(1,target); ui[k].itemPage=1; renderGrid(MODULES[k]); }
+  function changeItemPage(k,delta){ ui[k].itemPage=Math.max(1, ui[k].itemPage+delta); renderGrid(MODULES[k]); }
+  function goItemPage(k,target){ ui[k].itemPage=Math.max(1,target); renderGrid(MODULES[k]); }
+  function changeFlatPage(k,delta){ ui[k].itemPage=Math.max(1, ui[k].itemPage+delta); renderGrid(MODULES[k]); }
+  function goFlatPage(k,target){ ui[k].itemPage=Math.max(1,target); renderGrid(MODULES[k]); }
+  // ===== 首字母分组分页渲染 =====
+  function renderGridByLetter(m, all, grid, pagEl, collapseBack){
+    const groups=new Map();
+    for(const it of all){ const fl=firstLetterOf(it.title||''); if(!groups.has(fl)) groups.set(fl,[]); groups.get(fl).push(it); }
+    const dir=ui[m.key].titleDir==='desc'?-1:1;
+    const letters=[...groups.keys()].sort((a,b)=>{
+      const ah=a==='#', bh=b==='#';
+      if(ah&&!bh) return 1; if(!ah&&bh) return -1; if(ah&&bh) return 0;
+      return dir*a.localeCompare(b);
+    });
+    const letterCount=letters.length;
+    ui[m.key].letterPage=Math.min(Math.max(1, ui[m.key].letterPage), letterCount||1);
+    if(!letterCount){ grid.innerHTML=''; pagEl.innerHTML=''; return; }
+    const curIdx=ui[m.key].letterPage-1;
+    const curLetter=letters[curIdx];
+    const letterItems=groups.get(curLetter);
+    const pageSize=gridPageSize();
+    const subPages=Math.max(1, Math.ceil(letterItems.length/pageSize));
+    ui[m.key].itemPage=Math.min(Math.max(1, ui[m.key].itemPage), subPages);
+    const s=(ui[m.key].itemPage-1)*pageSize;
+    const pageItems=letterItems.slice(s, s+pageSize);
+
+    const collapseBtn = collapseBack
+      ? `<div class="col-span-full flex justify-end mb-2">
+           <button onclick="collapseGrid('${m.key}')" class="btn-outline px-3 py-1.5 text-xs"><i class="fa fa-angle-double-up mr-1"></i>收起预览</button>
+         </div>`
+      : '';
+    const header = `<div class="col-span-full flex flex-wrap items-center gap-2 mb-1">
+      <span class="inline-flex items-center gap-2">
+        <span class="inline-block w-8 h-8 rounded-lg soft-bg flex items-center justify-center text-primary-c font-semibold">${escapeHtml(curLetter)}</span>
+        <span class="text-sm text-muted-c">${letterItems.length} 个${m.label}${subPages>1?` · 第 ${ui[m.key].itemPage}/${subPages} 页`:''}</span>
+      </span>
+      <span class="text-xs text-muted-c ml-auto">首字母 ${curIdx+1} / ${letterCount}</span>
+    </div>`;
+    grid.innerHTML = collapseBtn + header + pageItems.map(it=>cardHTML(m,it)).join('');
+
+    // 首字母条（所有字母可点击，超出时仍然全部展示，字母本身只有 A-Z + # 二十余种，不会过多导致不可控；同时提供上一/下一 按钮翻页）
+    let pag='<div class="w-full flex flex-wrap items-center justify-center gap-1.5 mb-2">';
+    const prevD=curIdx<=0;
+    pag+=`<button onclick="changeLetterPage('${m.key}',-1)" class="btn-outline px-3 py-1.5 text-sm" ${prevD?'disabled style="opacity:.45;cursor:not-allowed"':''}><i class="fa fa-chevron-left"></i> 上一字母</button>`;
+    for(let i=0;i<letters.length;i++){
+      const L=letters[i], cnt=(groups.get(L)||[]).length, active=i===curIdx;
+      pag+=`<button onclick="goLetterPage('${m.key}',${i+1})" title="${cnt} 个${m.label}" class="w-8 h-8 text-sm rounded-lg ${active?'btn-soft ring-2 ring-primary-c':'btn-outline'}" ${active?'aria-current="page"':''}>${escapeHtml(L)}</button>`;
+    }
+    const nextD=curIdx>=letterCount-1;
+    pag+=`<button onclick="changeLetterPage('${m.key}',1)" class="btn-outline px-3 py-1.5 text-sm" ${nextD?'disabled style="opacity:.45;cursor:not-allowed"':''}>下一字母 <i class="fa fa-chevron-right"></i></button>`;
+    pag+='</div>';
+    // 子分页（单字母内过多条目）
+    pag += renderPaginator(ui[m.key].itemPage, subPages, p=>`goItemPage('${m.key}',${p})`, d=>`changeItemPage('${m.key}',${d})`);
+    pagEl.innerHTML=pag;
+  }
+  // ===== 普通扁平分页渲染 =====
+  function renderGridFlat(m, all, grid, pagEl, collapseBack, noPagination){
+    const pageSize=gridPageSize();
+    const totalPages=noPagination?1:Math.max(1, Math.ceil(all.length/pageSize));
+    ui[m.key].itemPage=Math.min(Math.max(1, ui[m.key].itemPage), totalPages);
+    const s=noPagination?0:((ui[m.key].itemPage-1)*pageSize);
+    const pageItems=noPagination?all:all.slice(s, s+pageSize);
+    const collapseBtn = collapseBack
+      ? `<div class="col-span-full flex justify-end mb-2">
+           <button onclick="collapseGrid('${m.key}')" class="btn-outline px-3 py-1.5 text-xs"><i class="fa fa-angle-double-up mr-1"></i>收起预览</button>
+         </div>`
+      : '';
+    grid.innerHTML = collapseBtn + pageItems.map(it=>cardHTML(m,it)).join('');
+    pagEl.innerHTML = noPagination?'':renderPaginator(ui[m.key].itemPage, totalPages, p=>`goFlatPage('${m.key}',${p})`, d=>`changeFlatPage('${m.key}',${d})`);
+  }
+  // ===== 主渲染：分支处理 =====
   function renderGrid(m){
+    // 每次渲染前同步：方向按钮可见性/文案 + 排序下拉选中值（确保任意代码路径重渲染后均自洽）
+    syncDirBtn(m.key);
+    try{ const sel=$('sortSelect_'+m.key); if(sel && sel.value!==ui[m.key].sort) sel.value=ui[m.key].sort; }catch(_){}
     const all=sortItems(m,filterItems(m));
     const grid=$(m.key+'Grid');
+    const pagEl=$(m.key+'Pagination');
     const empty=$('emptyState_'+m.key);
     const total=itemsOf(m).length;
     empty.classList.toggle('hidden', total>0);
-    // 判断是否需要截断（仅：状态=全部 且 无关键词 且 无标签过滤 时应用 6/8 条上限）
     const isHomeDefault = (ui[m.key].filter==='all') && !(ui[m.key].keyword||'').trim() && !ui[m.key].tagFilter && ui[m.key].sort!=='manual';
     const limit = homeGridLimit();
     const needTruncate = isHomeDefault && (all.length > limit);
-    const showMore = ui[m.key].showAll; // 用户手动点过「展开全部」
-    const list = needTruncate && !showMore ? all.slice(0, limit) : all;
-    if(!list.length){ grid.innerHTML = total? `<div class="col-span-full text-center py-10 text-muted-c">没有匹配的${m.label}</div>` : ''; return; }
-    const cards = list.map(it=>cardHTML(m,it)).join('');
-    const moreBtn = needTruncate && !showMore
-      ? `<div class="col-span-full flex justify-center pt-3">
+    const showMore = !!ui[m.key].showAll;
+
+    // 空态
+    if(!all.length){
+      grid.innerHTML = total? `<div class="col-span-full text-center py-10 text-muted-c">没有匹配的${m.label}</div>` : '';
+      if(pagEl) pagEl.innerHTML='';
+      return;
+    }
+    // 自主拖拽排序：必须展示全部，方便跨位置拖拽
+    if(ui[m.key].sort==='manual'){
+      renderGridFlat(m, all, grid, pagEl, needTruncate && showMore, true);
+      return;
+    }
+    // 首页默认缩略（6/8 条 + 查看全部按钮）
+    if(needTruncate && !showMore){
+      const list=all.slice(0,limit);
+      grid.innerHTML = list.map(it=>cardHTML(m,it)).join('') +
+        `<div class="col-span-full flex justify-center pt-3">
            <button onclick="showAllGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-down mr-1"></i>查看全部 ${all.length} 个${m.label}（当前展示 ${limit}）</button>
-         </div>`
-      : '';
-    const collapseBtn = needTruncate && showMore
-      ? `<div class="col-span-full flex justify-center pt-3">
-           <button onclick="collapseGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-up mr-1"></i>收起（共 ${all.length} 个）</button>
-         </div>`
-      : '';
-    grid.innerHTML = cards + moreBtn + collapseBtn;
+         </div>`;
+      if(pagEl) pagEl.innerHTML='';
+      return;
+    }
+    // 完整分页视图
+    if(ui[m.key].sort==='title'){
+      renderGridByLetter(m, all, grid, pagEl, needTruncate && showMore);
+    } else {
+      renderGridFlat(m, all, grid, pagEl, needTruncate && showMore, false);
+    }
   }
-  function showAllGrid(k){ ui[k].showAll=true; renderGrid(MODULES[k]); }
-  function collapseGrid(k){ ui[k].showAll=false; renderGrid(MODULES[k]); }
+  function showAllGrid(k){ ui[k].showAll=true; resetGridPages(k); renderGrid(MODULES[k]); }
+  function collapseGrid(k){ ui[k].showAll=false; resetGridPages(k); renderGrid(MODULES[k]); }
   function renderFilterTabs(m){
     const wrap=$('filterTabs_'+m.key); if(!wrap) return;
     const all=[['all','全部'], ...Object.entries(m.statuses).map(([k,[lbl]])=>[k,lbl])];
@@ -2686,12 +2907,18 @@
     const btn=e.target.closest('.filter-btn'); if(!btn) return;
     const mkey=btn.dataset.m, f=btn.dataset.f;
     ui[mkey].filter=f;
+    resetGridPages(mkey);
     renderFilterTabs(MODULES[mkey]);
     renderGrid(MODULES[mkey]);
   });
   ['show','book'].forEach(k=>{
-    $('searchInput_'+k).addEventListener('input', e=>{ ui[k].keyword=e.target.value.trim(); renderGrid(MODULES[k]); });
-    $('sortSelect_'+k).addEventListener('change', e=>{ ui[k].sort=e.target.value; renderGrid(MODULES[k]); });
+    $('searchInput_'+k).addEventListener('input', e=>{ ui[k].keyword=e.target.value.trim(); resetGridPages(k); renderGrid(MODULES[k]); });
+    $('sortSelect_'+k).addEventListener('change', e=>{
+      ui[k].sort=e.target.value;
+      resetGridPages(k);
+      syncDirBtn(k);
+      renderGrid(MODULES[k]);
+    });
   });
 
   // ============ 分享 ============
