@@ -424,16 +424,30 @@
         <img id="imgPrev" class="image-preview w-24 h-32 mt-2 hidden soft-bg" alt="预览"/>
       </div>
       <div>
-        <label class="text-sm block mb-1">标签（回车添加，或点选下方常用标签；输入评价词会自动识别加到独立的「综合评价」区）</label>
+        <label class="text-sm block mb-1">标签（回车添加，或点选下方常用标签）</label>
         <div class="flex gap-2 items-center"><input id="fldTagInput" class="input-ins flex-1 px-4 py-2.5" placeholder="如：治愈 / 科幻"/><button type="button" onclick="addTagFromInput()" class="btn-soft px-4 py-2.5 text-sm shrink-0 flex items-center gap-1"><i class="fa fa-plus"></i>标签</button></div>
         <div id="tagPresetList" class="flex flex-wrap gap-1.5 mt-2"></div>
         <div id="tagList" class="flex flex-wrap gap-2 mt-2"></div>
       </div>
       <div class="pt-3 border-t border-[var(--border)]">
-        <label class="text-sm block mb-2"><i class="fa fa-trophy mr-1" style="color:var(--accent)"></i>综合评价评级（与普通标签区分展示；可 AI 生成或手动点选）</label>
-        <div id="reviewSection"></div>
+        <div class="flex items-center gap-2 flex-wrap mb-1">
+          <span class="text-sm"><i class="fa fa-trophy mr-1" style="color:var(--accent)"></i>评价评级</span>
+          <span class="text-xs text-muted-c">（S 力荐 / A 推荐 / B 可看 / C 一般 / D 较差 / F 避雷）</span>
+        </div>
+        <div id="reviewGradeRow" class="review-grade-picker"></div>
       </div>
-      <div><label class="text-sm block mb-1">笔记</label><textarea id="fldNote" rows="3" class="input-ins w-full px-4 py-2.5" placeholder="记下你的感受..."></textarea></div>
+      <div class="pt-2">
+        <label class="text-sm block mb-1">笔记 <span class="text-xs text-muted-c ml-1">（下方快速选择评价词，星级 ≥4 自动生成默认评价）</span></label>
+        <div id="noteReviewBar" class="flex flex-wrap gap-1.5 mb-2"></div>
+        <div class="flex gap-2 items-center mb-2">
+          <input id="fldReviewTagInput" class="input-ins flex-1 px-4 py-2 text-sm" placeholder="评价词（回车添加，如：高开低走）"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); addReviewTagFromInput(); }">
+          <button type="button" onclick="addReviewTagFromInput()" class="btn-outline px-3 py-2 text-sm whitespace-nowrap">+ 评价词</button>
+          <button type="button" onclick="aiGenerateReview()" class="btn-soft px-3 py-2 text-sm" title="AI 总结评价"><i class="fa fa-magic"></i></button>
+        </div>
+        <textarea id="fldNote" rows="3" class="input-ins w-full px-4 py-2.5" placeholder="记下你的感受..."></textarea>
+        <div id="noteReviewPresets" class="mt-1.5"></div>
+      </div>
     </div>
     <div class="flex justify-end gap-2 mt-6">
       <button onclick="closeItemModal()" class="btn-outline px-5 py-2">取消</button>
@@ -1008,10 +1022,11 @@
       pField:'watched', tField:'total', pLabel:'已看', tLabel:'总集数', unit:'集',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#D4B5AD'],
       tagPresetGroups:[
-        {name:'题材', tags:buildThemeTagList(THEME_SUBGROUPS_SHOW)},
-        {name:'语言', tags:['中文','国创','日番','欧美','韩剧','泰剧','台剧','动画番','动画电影','真人','配音','粤语','英语']},
-        {name:'男频', tags:['爽剧','逆袭','权谋','战斗','装逼','打脸','热血男','后宫','玄幻','仙侠','都市','系统','穿越','无限流','诸天','赘婿','末世','科幻战斗','武侠','历史','军旅','谍战','搞笑爽剧']},
-        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','追妻火葬场','先婚后爱','古言权谋','仙侠言情','现言豪门','年代','种田','校园青春','无限流女强','宅斗','娱乐圈','职场大女主','双女主','灵异言情','治愈言情']}
+        {name:'番剧', tags:['国创','日番','欧美番','泡面番','长篇','短篇','OAD','OVA','剧场版','治愈','搞笑','热血','异世界','机甲','战斗','校园','异世界','日常','奇幻','魔法','少女','后宫','恋爱','悬疑','恐怖','运动','美食','音乐','智斗','赛博朋克','高达','美漫']},
+        {name:'电影', tags:['真人','动画电影','欧美','日影','韩影','中影','港台','独立','商业片','爆米花','文艺','剧情片','喜剧','动作','爱情','科幻','悬疑','惊悚','恐怖','战争','历史','传记','犯罪','奇幻','冒险','家庭','同性','纪录片','短片']},
+        {name:'剧集', tags:['真人','美剧','英剧','日剧','韩剧','国剧','台剧','港剧','泰剧','刑侦','都市','古装','武侠','历史','战争','军旅','谍战','悬疑','爱情','家庭','职场','青春','喜剧','科幻','奇幻','玄幻','仙侠','民国','年代','穿越','重生','系统','后宫','甜宠','虐恋','爽剧','逆袭','打脸','热血','权谋','搞笑']},
+        {name:'短剧', tags:['竖屏','抖音','快手','红果','腾讯微视','B站微短剧','悬疑','穿越','重生','霸总','甜宠','古装','都市','爽文改编','言情','逆袭','打脸','系统','脑洞','反转','高甜','虐恋','先婚后爱','追妻火葬场','团宠','萌宝','校园','科幻','玄幻','仙侠','悬疑推理','豪门','家族恩怨','离婚','虐渣','复仇','职场大女主','双男主','双女主','末日','末世','年代']},
+        {name:'纪录片', tags:['自然','人文','历史','人物','美食','科技','宇宙','动物','海洋','考古','社会','教育','军事','政治','音乐','艺术','建筑','交通','农业','商业','运动','旅行','战争','灾难','医疗','商业','财经','工业','考古','非遗','传统文化','环球','BBC','NHK','Discovery','Netflix']}
       ],
       extraFields:[], stateKey:'shows' },
     book: { key:'book', label:'书架', labelSingle:'书籍', viewName:'books',
@@ -1022,10 +1037,11 @@
       pField:'chaptersRead', tField:'totalChapters', pLabel:'已读', tLabel:'总章节', unit:'章',
       chartColors:['#b8c8e0','#f8dfb8','#b8ddc9','#e8c8d8','#c8b8dd'],
       tagPresetGroups:[
-        {name:'题材', tags:buildThemeTagList(THEME_SUBGROUPS_BOOK)},
-        {name:'语言', tags:['中文','网文','日轻','日系轻小说','欧美','翻译','原创','连载','完结','台版','韩漫','港版','英译中']},
-        {name:'男频', tags:['爽文','后宫','逆袭','权谋','战斗','装逼','打脸','热血男','升级流','玄幻','仙侠','凡人流','诡秘流','签到流','诸天','末世','种田基建','都市异能','历史争霸','军事','科幻机甲','网游','武侠','洪荒','恐怖灵异','搞笑','系统','赘婿','重生','穿越']},
-        {name:'女频', tags:['甜宠','宫斗','虐恋','霸总','重生','双男主','古言','现言','种田文','团宠','重生复仇','快穿','穿书','年代文','末世基建','仙侠言情','奇幻言情','宅斗','娱乐圈','豪门总裁','校园青春','无限流大女主','悬疑推理','治愈','双女主','追妻火葬场','先婚后爱','古言权谋','灵异言情']}
+        {name:'小说', tags:['原创','翻译','出版','古典','现代','当代','科幻','奇幻','玄幻','悬疑','推理','恐怖','惊悚','言情','纯爱','百合','女频','男频','青春','校园','历史','武侠','仙侠','都市','军事','游戏','体育','军事','战争','二次元','综漫','同人','轻小说','日轻','韩漫','台版','港版','英译中']},
+        {name:'漫画', tags:['国漫','日漫','韩漫','美漫','港漫','台漫','日轻改编','网文改编','TV动画','剧场版','泡面番','长篇','短篇','连载中','已完结','黑白','彩色','热血','恋爱','治愈','搞笑','奇幻','科幻','恐怖','悬疑','运动','美食','日常','异世界','机甲','高达','漫威','DC','独立','短篇','漫画集']},
+        {name:'散文', tags:['随笔','日记','书信','游记','学术','评论','杂文','纪实','回忆录','诗集','短篇小说','故事','传记','人物','思想','哲学','艺术','文化','社会','历史','自然','旅行','饮食','情感','励志','成长','治愈','暖心','哲理','优美','沉思','讽刺','黑色幽默','先锋','实验']},
+        {name:'网文', tags:['男频','女频','爽文','逆袭','重生','穿越','系统','签到','凡人流','诡秘流','种田','基建','历史争霸','都市异能','科幻机甲','网游','武侠','洪荒','仙侠','玄幻','末世','种田基建','种田文','升级流','后宫','权谋','军事','搞笑','装逼','打脸','热血','赘婿','诸天','无限流','仙侠言情','奇幻言情','快穿','穿书','年代文','团宠','言情','甜宠','虐恋','宫斗','宅斗','娱乐圈','豪门总裁','校园青春','双男主','双女主','无限流大女主','悬疑推理','治愈','追妻火葬场','先婚后爱','灵异言情','古言权谋','现言豪门','都市','东方玄幻','修真','修仙','星际','末日','废柴','金手指','小白','精品','完结','连载','VIP','免费','完本','精品']},
+        {name:'其他', tags:['教辅','教材','杂志','图鉴','写真','画册','剧本','报告','文献','论文','日记','漫画合集','同人志','电子书','有声书','原版','港台版','英文版','繁体','简体','精装','平装',' Kindle','PDF','EPUB','Azw3','TXT','MOBI','DRM','无DRM','公版','正版','盗版','二手','绝版','影印','扫描','豆瓣',' GoodReads','评分高','评分低','收藏','绝版','限量','签名版']}
       ],
       extraFields:[{key:'author',label:'作者',placeholder:'作者（可选）'}], stateKey:'books' }
   };
@@ -1113,7 +1129,7 @@
              book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,gradeFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[],
-      editingReviewGrade='', editingReviewTags=[], editingReviewNote='', editingReviewSource='',
+      editingReviewGrade='', editingReviewTags=[], editingReviewSource='',
       reviewSnapshot=null, reviewHadAI=false,
       starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
@@ -1135,6 +1151,18 @@
       const map = {5:'S',4:'A',3:'B',2:'C',1:'D'};
       it.reviewGrade = map[rating] || '';
       it.reviewSource = it.reviewSource || 'auto';
+    }
+    // 2.5 星级 -> 默认评价词（仅当无 reviewTags 时首次迁移）
+    if(!(it.reviewTags&&it.reviewTags.length) && rating>=1 && rating<=5){
+      const defaults = {
+        5: ['神作','值得N刷','节奏好'],
+        4: ['佳作','推荐','剧情在线'],
+        3: ['可看','中规中矩'],
+        2: ['一般','节奏慢'],
+        1: ['较差','避雷']
+      };
+      it.reviewTags = [...(defaults[rating]||[])];
+      if(!it.reviewSource) it.reviewSource = 'auto';
     }
     // 3. 缺省值
     if(!it.reviewGrade || typeof it.reviewGrade!=='string') it.reviewGrade = '';
@@ -1948,7 +1976,8 @@
   // 主页展示数量：竖屏 6 条 / 横屏 8 条（按朝向/尺寸自适应）
   function homeGridLimit(){
     const isLandscape = (window.innerWidth>window.innerHeight) || document.documentElement.classList.contains('landscape');
-    return isLandscape ? 8 : 6;
+    // 竖屏 8 个，横屏 8 个（按用户需求）
+    return 8;
   }
   // ===== 分页 / 首字母排序方向 辅助函数 =====
   function resetGridPages(k){ ui[k].letterPage=1; ui[k].itemPage=1; }
@@ -2114,7 +2143,7 @@
       const list=all.slice(0,limit);
       grid.innerHTML = list.map(it=>cardHTML(m,it)).join('') +
         `<div class="col-span-full flex justify-center pt-3">
-           <button onclick="showAllGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-down mr-1"></i>查看全部 ${all.length} 个${m.label}（当前展示 ${limit}）</button>
+           <button onclick="showAllGrid('${m.key}')" class="btn-outline px-6 py-2 text-sm"><i class="fa fa-angle-double-down mr-1"></i>查看全部 ${all.length} 个${m.label}</button>
          </div>`;
       if(pagEl) pagEl.innerHTML='';
       return;
@@ -2362,83 +2391,88 @@
 
   // ============ 评价区 UI 渲染 ============
   function renderReviewUI(){
-    const wrap=$('reviewSection'); if(!wrap) return;
+    const gradeRow=$('reviewGradeRow');
+    const bar=$('noteReviewBar');
+    const presetsRow=$('noteReviewPresets');
+    if(!gradeRow && !bar && !presetsRow) return;
     const mk = editingModuleKey;
     const presets = mk==='book' ? REVIEW_TAG_PRESETS_BOOK : REVIEW_TAG_PRESETS_SHOW;
     const myRev = getUserReviewTags(mk);
     // 合并所有 presets + 我的评价词，去重
     const pool = [...presets];
     myRev.forEach(t=>{ if(!pool.includes(t)) pool.push(t); });
-    // 圆徽章评级
+    // 圆徽章评级（仅渲染 gradeRow）
     const gradeHTML = REVIEW_GRADES.map(g=>{
       const active = editingReviewGrade===g.k;
       return `<button type="button" onclick="setReviewGrade('${g.k}')" title="${g.title}"
         class="rg-btn badge-grade-${g.k} ${active?'active':''}" style="background:${g.bg}">${g.k}</button>`;
     }).join('');
-    // 评价词 chip 池（预置 + 我的）
-    const chipHTML = pool.map(t=>{
-      const on = editingReviewTags.includes(t);
-      const tone = classifyReviewTagTone(t);
-      const toneAttr = tone ? ` data-tone="${tone}"`:'';
-      const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
-      const j=JSON.stringify(t).replace(/"/g,'&quot;');
-      const longPressHandlers = myRev.includes(t)
-        ? ` oncontextmenu="onUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}'); return false" ontouchstart="startUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}')" ontouchend="clearUserReviewTagLongPress()" ontouchmove="clearUserReviewTagLongPress()" ontouchcancel="clearUserReviewTagLongPress()" `
-        : '';
-      return `<button type="button" class="review-tag-chip"${toneAttr} onclick="toggleReviewPreset(${j})"${longPressHandlers} title="${myRev.includes(t)?'点击添加 / 长按从我的评价词库删除':'点击添加'}">${emoji}${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
-    }).join('');
-    // 已选 reviewTags 列表
-    const selectedHTML = editingReviewTags.length
-      ? editingReviewTags.map((t,i)=>{
-          const tone = classifyReviewTagTone(t);
-          const toneAttr = tone ? ` data-tone="${tone}"`:'';
-          const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
-          return `<span class="review-tag-chip"${toneAttr}>${emoji}${escapeHtml(t)} <i class="fa fa-times ml-1" onclick="removeReviewTag(${i})" style="cursor:pointer"></i></span>`;
-        }).join('')
-      : '<span class="text-xs text-muted-c">暂无评价词</span>';
-    // AI 配置状态
-    const cfg = getAIConfig();
-    const hasAI = !!cfg.apiKey;
-    const modelDisp = (cfg.model || (cfg.provider==='gemini'?AI_DEFAULT_MODELS.gemini:AI_DEFAULT_MODELS.openai)) + ' · ' + (cfg.provider==='gemini'?'Gemini':'OpenAI');
-    const reviewHint = editingReviewSource==='ai'
-      ? `<span class="text-xs text-muted-c"><i class="fa fa-refresh mr-1"></i>已用 AI 总结，可重新生成 · 使用模型：${modelDisp}</span>`
-      : `<span class="text-xs text-muted-c">可基于标题/类型/评分/笔记让 AI 生成评价，也可手动点选。${hasAI?'使用模型：'+modelDisp:'未配置 AI，请先到 设置 → AI 智能识别 配置 API Key 后使用。'}</span>`;
-    const SRC_OPTIONS=[['manual','✍️ 手动填写'],['ai','🤖 AI 总结'],['mixed','✨ AI+手动 综合'],['third','📣 第三方评分'],['auto','⚡ 星级自动推断']];
-    const srcSelectHTML = `<div class="flex items-center gap-2 flex-wrap">
-      <label class="text-sm shrink-0"><i class="fa fa-tag mr-1" style="color:var(--accent)"></i>评价来源</label>
-      <select id="fldReviewSource" class="input-ins px-3 py-1.5 text-sm flex-1 min-w-[180px]" onchange="onChangeReviewSource(this.value)">
-        ${SRC_OPTIONS.map(([k,l])=>`<option value="${k}" ${editingReviewSource===k?'selected':''}>${l}</option>`).join('')}
-      </select>
-    </div>`;
-    wrap.innerHTML = `
-      <div>
-        <label class="text-sm block mb-2">综合评价评级 <span class="text-xs text-muted-c ml-1">（S 力荐 / A 推荐 / B 可看 / C 一般 / D 较差 / F 避雷）</span></label>
-        <div class="review-grade-picker mb-2">${gradeHTML}</div>
-      </div>
-      <div>
-        <label class="text-sm block mb-2">评价关键词</label>
-        <div class="flex flex-wrap gap-1.5 mb-2">${chipHTML}</div>
-        <div id="selectedReviewTags" class="flex flex-wrap gap-1.5 mb-2">${selectedHTML}</div>
-        <div class="flex gap-2 items-center mb-1">
-          <input id="fldReviewTagInput" class="input-ins flex-1 px-4 py-2" placeholder="自定义评价词（回车添加，如：高开低走）"
-            onkeydown="if(event.key==='Enter'){ event.preventDefault(); addReviewTagFromInput(); }">
-          <button type="button" onclick="addReviewTagFromInput()" class="btn-outline px-3 py-2 text-sm whitespace-nowrap">+ 评价词</button>
-        </div>
-      </div>
-      <div>
-        <label class="text-sm block mb-2">一句话点评 <span class="text-xs text-muted-c">（≤100 字）</span></label>
-        <textarea id="fldReviewNote" rows="2" class="input-ins w-full px-4 py-2" maxlength="120" placeholder="如：节奏把控出色，后半段剧情张力拉满...">${escapeHtml(editingReviewNote||'')}</textarea>
-      </div>
-      ${srcSelectHTML}
-      <div class="mt-3 p-3 rounded-xl soft-bg-50">
-        <div class="flex items-center gap-2 flex-wrap">
-          <button type="button" onclick="aiGenerateReview()" class="btn-soft px-4 py-2 text-sm" ${hasAI?'':'disabled style="opacity:.45;cursor:not-allowed"'}>
-            <i class="fa fa-magic mr-1"></i>${hasAI?'AI 总结评价':'AI 未配置（去设置 → AI 智能识别）'}
-          </button>
-          <button type="button" onclick="clearReview()" class="btn-outline px-3 py-2 text-sm">清空评价</button>
-        </div>
-        <div class="mt-2">${reviewHint}</div>
-      </div>`;
+    if(gradeRow) gradeRow.innerHTML = gradeHTML;
+    // 已选 reviewTags chip（noteReviewBar）
+    if(bar){
+      const selectedHTML = editingReviewTags.length
+        ? editingReviewTags.map((t,i)=>{
+            const tone = classifyReviewTagTone(t);
+            const toneAttr = tone ? ` data-tone="${tone}"`:'';
+            const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
+            return `<span class="review-tag-chip"${toneAttr}>${emoji}${escapeHtml(t)} <i class="fa fa-times ml-1" onclick="removeReviewTag(${i})" style="cursor:pointer"></i></span>`;
+          }).join('')
+        : '<span class="text-xs text-muted-c">未选评价词 · 星级 ≥4 自动生成</span>';
+      const cfg = getAIConfig();
+      const hasAI = !!cfg.apiKey;
+      const src = reviewSourceIcon(editingReviewSource);
+      bar.innerHTML = `${selectedHTML}
+        <span class="ml-auto text-xs text-muted-c flex items-center gap-1">
+          ${editingReviewSource?src:''}
+          <button type="button" onclick="clearReview()" class="text-red-400 hover:text-red-600 underline-offset-2 hover:underline" title="清空评价">清空评价</button>
+        </span>`;
+    }
+    // 预置评价词（noteReviewPresets）
+    if(presetsRow){
+      const chipHTML = pool.map(t=>{
+        const on = editingReviewTags.includes(t);
+        const tone = classifyReviewTagTone(t);
+        const toneAttr = tone ? ` data-tone="${tone}"`:'';
+        const emoji = tone==='pos'?'✨':tone==='neg'?'💔':'🌟';
+        const j=JSON.stringify(t).replace(/"/g,'&quot;');
+        const longPressHandlers = myRev.includes(t)
+          ? ` oncontextmenu="onUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}'); return false" ontouchstart="startUserReviewTagLongPress(event,'${j.replace(/'/g,'\\&#39;')}')" ontouchend="clearUserReviewTagLongPress()" ontouchmove="clearUserReviewTagLongPress()" ontouchcancel="clearUserReviewTagLongPress()" `
+          : '';
+        return `<button type="button" class="review-tag-chip"${toneAttr} onclick="toggleReviewPreset(${j})"${longPressHandlers} title="${myRev.includes(t)?'点击添加 / 长按从我的评价词库删除':'点击添加'}">${emoji}${escapeHtml(t)}${on?' <i class="fa fa-check ml-0.5"></i>':''}</button>`;
+      }).join('');
+      // 星级→默认评价词提示（仅在没有手动选过的时候自动填充）
+      const ratingHint = (function(){
+        const r = starValue || 0;
+        const def = RATING_DEFAULT_REVIEW[r];
+        if(!def || editingReviewTags.length) return '';
+        return `<span class="text-xs text-muted-c inline-flex items-center gap-1 ml-1">
+          🌟 ${r} 星默认：${def.slice(0,3).join(' / ')}…
+          <button type="button" onclick="applyRatingDefaultReview()" class="text-xs underline-offset-2 hover:underline text-[var(--accent)]">一键应用</button>
+        </span>`;
+      })();
+      presetsRow.innerHTML = `<div class="flex flex-wrap gap-1.5">${chipHTML}</div>${ratingHint}`;
+    }
+  }
+  // 星级 → 默认评价词/评级（自动填充）
+  const RATING_DEFAULT_REVIEW = {
+    5: ['神作','值得N刷','节奏好','口碑爆棚'],
+    4: ['佳作','推荐','剧情在线','人设完美'],
+    3: ['可看','中规中矩','节奏尚可','整体合格'],
+    2: ['一般','节奏慢','高开低走','剧情拉垮'],
+    1: ['较差','避雷','烂尾','水剧情']
+  };
+  function applyRatingDefaultReview(){
+    const r = starValue || 0;
+    const def = RATING_DEFAULT_REVIEW[r];
+    if(!def) return;
+    def.forEach(t=>{ if(!editingReviewTags.includes(t)) editingReviewTags.push(t); });
+    // 没有评级时也按星级自动填（与 normalize 一致）
+    if(!editingReviewGrade){
+      const map={5:'S',4:'A',3:'B',2:'C',1:'D'};
+      editingReviewGrade = map[r] || '';
+    }
+    if(!editingReviewSource) editingReviewSource = 'auto';
+    renderReviewUI();
   }
   function onChangeReviewSource(v){ editingReviewSource=v; }
   // 手动修改 / AI 生成 / 手动补词 组合 → 自动切换来源（保持用户手工选的 third/mixed/ai/manual 仅在无冲突时尊重）
@@ -2477,9 +2511,9 @@
     if(inp){ inp.value=''; inp.focus(); }
   }
   function clearReview(){
-    if(!editingReviewGrade && !editingReviewTags.length && !editingReviewNote) return;
+    if(!editingReviewGrade && !editingReviewTags.length) return;
     if(!confirm('清空综合评价评级/关键词/点评？')) return;
-    editingReviewGrade=''; editingReviewTags=[]; editingReviewNote=''; editingReviewSource='';
+    editingReviewGrade=''; editingReviewTags=[]; editingReviewSource='';
     renderReviewUI();
   }
   let userReviewTagLongPressTimer=null;
@@ -2514,7 +2548,7 @@
 - 用户评分(1~5星)：${rating||0}
 - 标签：${tagsStr||'(无)'}
 - 笔记：${note||'(无)'}`;
-    const btn = document.querySelectorAll('#reviewSection button[onclick*="aiGenerateReview"]')[0];
+    const btn = document.querySelector('button[onclick*="aiGenerateReview"]');
     const oldHTML = btn ? btn.innerHTML : '';
     if(btn){ btn.innerHTML='<i class="fa fa-spinner fa-spin mr-1"></i>生成中...'; btn.disabled=true; }
     try{
@@ -2556,7 +2590,6 @@
       editingReviewGrade = grade || editingReviewGrade;
       tags.forEach(t=>{ if(!editingReviewTags.includes(t)) editingReviewTags.push(t); });
       editingReviewTags = editingReviewTags.slice(0, 10);
-      editingReviewNote = note || editingReviewNote;
       editingReviewSource = 'ai';
       renderReviewUI();
       showToast('✨ AI 总结已应用' + (grade?' · 评级'+grade:''), {pos:'upper', style:'accent', duration:1800});
@@ -2583,7 +2616,7 @@
   function openItemModal(key, id){
     const m=MODULES[key];
     editingModuleKey=key; editingTags=[]; starValue=0;
-    editingReviewGrade=''; editingReviewTags=[]; editingReviewNote=''; editingReviewSource='';
+    editingReviewGrade=''; editingReviewTags=[]; editingReviewSource='';
     reviewSnapshot=null; reviewHadAI=false;
     $('editModule').value=key;
     $('itemModalTitle').textContent = id?'编辑'+m.labelSingle:'添加'+m.labelSingle;
@@ -2607,13 +2640,13 @@
       starValue = it.rating||0; refreshStars();
       editingReviewGrade = it.reviewGrade || '';
       editingReviewTags  = [...(it.reviewTags||[])];
-      editingReviewNote  = it.reviewNote || '';
+      // reviewNote 已整合进笔记，不再独立使用
       editingReviewSource= it.reviewSource || '';
       // 快照：后续比对"用户是否手动修改"
       reviewSnapshot = {
         grade: editingReviewGrade,
         tags: [...editingReviewTags].sort(),
-        note: editingReviewNote
+        // (已弃用)
       };
       reviewHadAI = (it.reviewSource==='ai' || it.reviewSource==='mixed');
       if(it.img){ try{ previewImg(); }catch(_){} }
@@ -2640,9 +2673,7 @@
     if(!title){ alert('请填写标题'); return; }
     const id=$('editId').value;
     const note = ($('fldNote')?.value||'').trim();
-    // 读取用户手动选择的来源下拉
-    const selectedSource = ($('fldReviewSource')?.value||'').trim();
-    if(selectedSource) editingReviewSource = selectedSource;
+    // 评价来源直接使用 editingReviewSource（UI 已通过 onChangeReviewSource / 手动 / AI 设置）
     // 判定用户是否手动修改过评价内容（和进入弹窗时快照对比）
     let userTouched=false;
     if(reviewSnapshot){
@@ -2650,14 +2681,13 @@
       const a=reviewSnapshot.tags, b=[...editingReviewTags].sort();
       if(a.length!==b.length) userTouched=true;
       else for(let i=0;i<a.length;i++) if(a[i]!==b[i]){ userTouched=true; break; }
-      if((editingReviewNote||'')!==reviewSnapshot.note) userTouched=true;
     }
-    const hasAnyReview = !!(editingReviewGrade || editingReviewTags.length || (editingReviewNote&&editingReviewNote.trim()));
+    const hasAnyReview = !!(editingReviewGrade || editingReviewTags.length);
     let src = hasAnyReview ? deriveFinalReviewSource(editingReviewSource||'', reviewHadAI, userTouched) : '';
     const d={ title, type:$('fldType').value, status:$('fldStatus').value,
       rating:starValue, img:$('fldImg').value.trim(), tags:[...editingTags], note,
       reviewGrade:editingReviewGrade||'', reviewTags:[...editingReviewTags],
-      reviewSource:src, reviewNote:($('fldReviewNote')?.value||'').trim() };
+      reviewSource:src, reviewNote:'' };
     d[m.pField]=parseInt($('fldProgress').value)||0;
     d[m.tField]=parseInt($('fldTotal').value)||0;
     m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) d[f.key]=el.value.trim(); });
