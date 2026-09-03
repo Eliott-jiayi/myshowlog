@@ -54,6 +54,12 @@
     .tag-item:hover { filter:brightness(0.96); }
     .tag-chip { background:var(--soft); color:var(--text); border-radius:999px; font-size:12px; padding:3px 10px; cursor:pointer; transition:.15s; }
     .tag-chip.active { background:var(--accent); color:#fff; }
+    .btn-chip { background:var(--soft); color:var(--text); border:0; border-radius:999px; font-size:12px; padding:3px 10px; cursor:pointer; transition:.15s; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .btn-chip:hover { filter:brightness(0.96); }
+    .btn-chip.active { background:var(--accent); color:#fff; }
+    .grade-filter-chip { border:0; border-radius:999px; padding:3px 11px; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,.08); opacity:.78; letter-spacing:.2px; }
+    .grade-filter-chip:hover { transform:translateY(-1px); opacity:.92; }
+    .grade-filter-chip.active { outline:2px solid rgba(15,23,42,.18); outline-offset:2px; opacity:1; }
     .soft-bg { background:var(--soft); }
     .soft-bg-50 { background:color-mix(in srgb,var(--soft) 55%,transparent); }
     .text-muted-c { color:var(--muted); }
@@ -658,10 +664,11 @@
           <select id="sortSelect_show" class="input-ins px-3 py-2.5 text-sm">
             <option value="recent">按时间</option><option value="title">按首字母</option>
             <option value="manual">自主拖拽</option><option value="rating">评分最高</option>
-            <option value="progress">进度最多</option>
+            <option value="grade">评级最高</option><option value="progress">进度最多</option>
           </select>
           <button id="dirShowBtn" onclick="toggleTitleDir('show')" class="btn-outline px-3 py-2.5 text-sm shrink-0 hidden" title="切换正序/倒序"><i class="fa fa-sort-amount-asc mr-1"></i><span id="dirShowText">正序</span></button>
         </div>
+        <div id="showGradeFilterRow" class="flex flex-wrap items-center gap-2 mb-2"></div>
         <div id="showTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="showGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         <div id="showPagination" class="mt-5 flex flex-wrap items-center justify-center gap-2"></div>
@@ -691,10 +698,11 @@
           <select id="sortSelect_book" class="input-ins px-3 py-2.5 text-sm">
             <option value="recent">按时间</option><option value="title">按首字母</option>
             <option value="manual">自主拖拽</option><option value="rating">评分最高</option>
-            <option value="progress">进度最多</option>
+            <option value="grade">评级最高</option><option value="progress">进度最多</option>
           </select>
           <button id="dirBookBtn" onclick="toggleTitleDir('book')" class="btn-outline px-3 py-2.5 text-sm shrink-0 hidden" title="切换正序/倒序"><i class="fa fa-sort-amount-asc mr-1"></i><span id="dirBookText">正序</span></button>
         </div>
+        <div id="bookGradeFilterRow" class="flex flex-wrap items-center gap-2 mb-2"></div>
         <div id="bookTagFilterRow" class="flex flex-wrap gap-2 mb-4"></div>
         <div id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         <div id="bookPagination" class="mt-5 flex flex-wrap items-center justify-center gap-2"></div>
@@ -1101,11 +1109,12 @@
 
   // ============ 状态 ============
   const data={shows:[],books:[]};
-  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1},
-             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1} };
+  const ui={ show:{filter:'all',keyword:'',sort:'recent',tagFilter:null,gradeFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1},
+             book:{filter:'all',keyword:'',sort:'recent',tagFilter:null,gradeFilter:null,chart:null,manualOrder:null,userTags:null,showAll:false,titleDir:'asc',letterPage:1,itemPage:1} };
   let currentUser=null, currentName='', activeView='home', profile={}, records=[], currentPlatform='all',
       customApps=[], appOverrides={}, appOrder=[], editingModuleKey='show', editingTags=[],
       editingReviewGrade='', editingReviewTags=[], editingReviewNote='', editingReviewSource='',
+      reviewSnapshot=null, reviewHadAI=false,
       starValue=0, cropper=null,
       posterTargetKey=null, posterTargetId=null;
 
@@ -1131,7 +1140,7 @@
     if(!it.reviewGrade || typeof it.reviewGrade!=='string') it.reviewGrade = '';
     if(!Array.isArray(it.reviewTags)) it.reviewTags = [];
     else it.reviewTags = it.reviewTags.filter(t=>typeof t==='string' && t.trim());
-    if(!it.reviewSource || !['ai','manual','auto',''].includes(it.reviewSource)) it.reviewSource = '';
+    if(!it.reviewSource || !['ai','manual','auto','mixed','third',''].includes(it.reviewSource)) it.reviewSource = '';
     if(typeof it.reviewNote!=='string') it.reviewNote = '';
     else if(it.reviewNote.length>200) it.reviewNote = it.reviewNote.slice(0,200);
     return it;
@@ -1453,7 +1462,7 @@
     // 重置所有 UI 状态，避免被注销账号的筛选/排序/分页/图表状态残留到下个登录用户
     ['show','book'].forEach(k=>{
       ui[k].userTags=null; ui[k].manualOrder=null;
-      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null;
+      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null; ui[k].gradeFilter=null;
       ui[k].showAll=false; ui[k].titleDir='asc'; ui[k].letterPage=1; ui[k].itemPage=1;
       if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
     });
@@ -1486,7 +1495,7 @@
     // 重置所有 UI 状态，避免上次用户的分页/筛选/排序状态残留
     ['show','book'].forEach(k=>{
       ui[k].userTags=null; ui[k].manualOrder=null;
-      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null;
+      ui[k].filter='all'; ui[k].keyword=''; ui[k].sort='recent'; ui[k].tagFilter=null; ui[k].gradeFilter=null;
       ui[k].showAll=false; ui[k].titleDir='asc'; ui[k].letterPage=1; ui[k].itemPage=1;
       if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
     });
@@ -1732,6 +1741,8 @@
     if(src==='ai') return `<span class="review-source-icon" title="AI 总结">🤖</span>`;
     if(src==='manual') return `<span class="review-source-icon" title="手动">✍️</span>`;
     if(src==='auto') return `<span class="review-source-icon" title="自动迁移">⚡</span>`;
+    if(src==='mixed') return `<span class="review-source-icon" title="AI+手动 综合">✨</span>`;
+    if(src==='third') return `<span class="review-source-icon" title="第三方">📣</span>`;
     return '';
   }
   function reviewTagsChips(it, limit){
@@ -1801,13 +1812,21 @@
   function filterItems(m){
     return itemsOf(m).filter(it=>{
       if(ui[m.key].filter!=='all' && it.status!==ui[m.key].filter) return false;
-      if(ui[m.key].tagFilter && !(it.tags||[]).includes(ui[m.key].tagFilter)) return false;
+      if(ui[m.key].gradeFilter && (it.reviewGrade||'')!==ui[m.key].gradeFilter) return false;
+      if(ui[m.key].tagFilter){
+        const inTags=(it.tags||[]).includes(ui[m.key].tagFilter);
+        const inReviewTags=(it.reviewTags||[]).includes(ui[m.key].tagFilter);
+        if(!inTags && !inReviewTags) return false;
+      }
       if(ui[m.key].keyword){
         const k=ui[m.key].keyword.toLowerCase();
         const inT=(it.title||'').toLowerCase().includes(k);
         const inTags=(it.tags||[]).some(t=>t.toLowerCase().includes(k));
+        const inReviewTags=(it.reviewTags||[]).some(t=>t.toLowerCase().includes(k));
+        const inReviewNote=(it.reviewNote||'').toLowerCase().includes(k);
+        const inGrade=(it.reviewGrade||'').toLowerCase()===k || (REVIEW_GRADE_MAP[it.reviewGrade||'']?.title||'').toLowerCase().includes(k);
         const inExtra=m.extraFields.some(f=>(it[f.key]||'').toLowerCase().includes(k));
-        if(!inT && !inTags && !inExtra) return false;
+        if(!inT && !inTags && !inReviewTags && !inReviewNote && !inGrade && !inExtra) return false;
       }
       return true;
     });
@@ -1862,10 +1881,23 @@
   }
   function sortItems(m,list){
     const arr=[...list], s=ui[m.key].sort;
-    // titleDir 仅用于 title 排序（首字母正倒序），不影响 recent/rating/progress 排序
+    // titleDir 仅用于 title 排序（首字母正倒序），不影响 recent/rating/grade/progress 排序
     const dir = ui[m.key].titleDir==='desc' ? -1 : 1;
+    // S>A>B>C>D>F>'': 建立排名
+    const gradeRank = g => {
+      const order={'S':6,'A':5,'B':4,'C':3,'D':2,'F':1}; return order[g]||0;
+    };
     if(s==='recent') arr.sort((a,b)=>((b.createdAt||0)-(a.createdAt||0)));
     else if(s==='rating') arr.sort((a,b)=>((b.rating||0)-(a.rating||0)));
+    else if(s==='grade'){
+      arr.sort((a,b)=>{
+        const dr = gradeRank(b.reviewGrade||'') - gradeRank(a.reviewGrade||'');
+        if(dr!==0) return dr;
+        // 次级：评分高 → 创建新
+        const rr = (b.rating||0)-(a.rating||0); if(rr!==0) return rr;
+        return (b.createdAt||0)-(a.createdAt||0);
+      });
+    }
     else if(s==='progress') arr.sort((a,b)=>(progressPct(m,b)-progressPct(m,a)));
     else if(s==='title'){
       arr.sort((a,b)=>{
@@ -2103,12 +2135,27 @@
   }
   function renderTagFilters(m){
     const row=$(m.key+'TagFilterRow'); if(!row) return;
-    const tags=[...new Set(itemsOf(m).flatMap(s=>s.tags||[]))];
+    const tags=[...new Set([...itemsOf(m).flatMap(s=>s.tags||[]), ...itemsOf(m).flatMap(s=>s.reviewTags||[])])];
     if(!tags.length){ row.innerHTML=''; return; }
     row.innerHTML=`<span class="tag-chip ${!ui[m.key].tagFilter?'active':''}" onclick="setTagFilter('${m.key}',null)">全部标签</span>`+
       tags.map(t=>{ const j=JSON.stringify(t).replace(/"/g,'&quot;'); return `<span class="tag-chip ${ui[m.key].tagFilter===t?'active':''}" onclick="setTagFilter('${m.key}',${j})">${escapeHtml(t)}</span>`; }).join('');
   }
   function setTagFilter(key,t){ ui[key].tagFilter=t; resetGridPages(key); renderTagFilters(MODULES[key]); renderGrid(MODULES[key]); }
+  function renderGradeFilters(m){
+    const row=$(m.key+'GradeFilterRow'); if(!row) return;
+    const counts={}; itemsOf(m).forEach(it=>{ const g=it.reviewGrade||''; if(g) counts[g]=(counts[g]||0)+1; });
+    const hasAny=Object.values(counts).reduce((a,b)=>a+b,0)>0;
+    if(!hasAny){ row.innerHTML=''; return; }
+    const ALL_GRADES=['S','A','B','C','D','F'];
+    const allBtn=`<button class="btn-chip ${!ui[m.key].gradeFilter?'active':''}" onclick="setGradeFilter('${m.key}',null)" title="显示全部评级">全部评级</button>`;
+    const btns=ALL_GRADES.map(g=>{
+      const meta=REVIEW_GRADE_MAP[g]; if(!meta) return '';
+      const cnt=counts[g]||0;
+      return `<button class="grade-filter-chip ${ui[m.key].gradeFilter===g?'active':''}" onclick="setGradeFilter('${m.key}',${JSON.stringify(g)})" style="background:${meta.bg};color:${meta.fg}">${g} · ${meta.title}<span class="ml-1 text-[10px] opacity-80">(${cnt})</span></button>`;
+    }).join('');
+    row.innerHTML=`<div class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted-c mr-1"><i class="fa fa-trophy mr-1" style="color:var(--accent)"></i>评级过滤</span>${allBtn}${btns}</div>`;
+  }
+  function setGradeFilter(key,g){ ui[key].gradeFilter=g; resetGridPages(key); renderGradeFilters(MODULES[key]); renderGrid(MODULES[key]); }
   function renderStats(m){
     const items=itemsOf(m);
     const wrap=$(m.key+'StatsWrap');
@@ -2136,7 +2183,7 @@
     if(ui[m.key].chart) ui[m.key].chart.destroy();
     ui[m.key].chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:d,backgroundColor:m.chartColors,borderRadius:8,maxBarThickness:48}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt,stepSize:1,precision:0},grid:{color:grid}}}}});
   }
-  function renderAll(m){ renderFilterTabs(m); renderStats(m); renderTagFilters(m); renderGrid(m); }
+  function renderAll(m){ renderFilterTabs(m); renderStats(m); renderGradeFilters(m); renderTagFilters(m); renderGrid(m); }
 
   // ============ 条目弹窗 ============
   function buildStarPicker(){
@@ -2187,10 +2234,13 @@
     if(i>=0){ arr.splice(i,1); saveUserReviewTags(mk, arr); }
   }
   function classifyReviewTagTone(t){
-    const posSet = new Set(['神作','强推','必看','佳作','佳作可期','后劲大','年度最佳','冷门佳作','治愈神番','节奏好','剧情在线','人设完美','泪目','意难平','二刷预定','值得N刷','神仙打架','文笔佳','世界观宏大','人物立体','爽点密集','HE','治愈系','口碑爆棚']);
-    const negSet = new Set(['可看但不推','高开低走','前紧后松','节奏慢','水剧情','逻辑渣','剧情拉垮','工业糖精','玛丽苏','老套','烂尾','翻车','已弃','无脑爽','狗血','套路老','灌水','冗长','掉书袋','BE','追更中','中规中矩']);
+    const posSet = new Set(['神作','强推','必看','佳作','佳作可期','后劲大','年度最佳','冷门佳作','治愈神番','节奏好','剧情在线','人设完美','泪目','意难平','二刷预定','值得N刷','神仙打架','文笔佳','世界观宏大','人物立体','爽点密集','HE','治愈系','口碑爆棚','剧情优秀','制作精良','逻辑在线','神展开','全程高能','笑点密集','感动','上头','烧脑','反转精彩','有深度','封神','高燃','甜蜜','上头','浪漫','演技在线','细节到位','画面精美']);
+    const negSet = new Set(['可看但不推','高开低走','前紧后松','节奏慢','水剧情','逻辑渣','剧情拉垮','工业糖精','玛丽苏','老套','烂尾','翻车','已弃','无脑爽','狗血','套路老','灌水','冗长','掉书袋','BE','中规中矩','烂片','烂书','避雷','难看','劝退','狗血淋头','离谱','无聊','低幼','人设崩塌','白学','虐到窒息','阴间剧情','剧情迷惑','演技尴尬','五毛特效','文戏拉胯']);
     if(posSet.has(t)) return 'pos';
     if(negSet.has(t)) return 'neg';
+    // 模糊匹配：包含「神/佳/推/治愈/甜/爽/高能/优秀/在线/精良」等正向词根；含「烂/水/差/弃/避雷/崩/狗血/离谱」等负向词根
+    if(/神作|封神|强推|必看|佳作|治愈|高能|优秀|精良|在线|上头|甜|爽|感动|精彩|宏大|立体|密集|口碑|推荐/.test(t)) return 'pos';
+    if(/烂|水|弃|避雷|崩|狗血|离谱|无聊|差|难看|劝退|拉垮|渣|灌水|冗长|低幼|阴间|迷惑|尴尬|翻车/.test(t)) return 'neg';
     return '';
   }
   function renderTagPresets(){
@@ -2353,6 +2403,13 @@
     const reviewHint = editingReviewSource==='ai'
       ? `<span class="text-xs text-muted-c"><i class="fa fa-refresh mr-1"></i>已用 AI 总结，可重新生成 · 使用模型：${modelDisp}</span>`
       : `<span class="text-xs text-muted-c">可基于标题/类型/评分/笔记让 AI 生成评价，也可手动点选。${hasAI?'使用模型：'+modelDisp:'未配置 AI，请先到 设置 → AI 智能识别 配置 API Key 后使用。'}</span>`;
+    const SRC_OPTIONS=[['manual','✍️ 手动填写'],['ai','🤖 AI 总结'],['mixed','✨ AI+手动 综合'],['third','📣 第三方评分'],['auto','⚡ 星级自动推断']];
+    const srcSelectHTML = `<div class="flex items-center gap-2 flex-wrap">
+      <label class="text-sm shrink-0"><i class="fa fa-tag mr-1" style="color:var(--accent)"></i>评价来源</label>
+      <select id="fldReviewSource" class="input-ins px-3 py-1.5 text-sm flex-1 min-w-[180px]" onchange="onChangeReviewSource(this.value)">
+        ${SRC_OPTIONS.map(([k,l])=>`<option value="${k}" ${editingReviewSource===k?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>`;
     wrap.innerHTML = `
       <div>
         <label class="text-sm block mb-2">综合评价评级 <span class="text-xs text-muted-c ml-1">（S 力荐 / A 推荐 / B 可看 / C 一般 / D 较差 / F 避雷）</span></label>
@@ -2372,6 +2429,7 @@
         <label class="text-sm block mb-2">一句话点评 <span class="text-xs text-muted-c">（≤100 字）</span></label>
         <textarea id="fldReviewNote" rows="2" class="input-ins w-full px-4 py-2" maxlength="120" placeholder="如：节奏把控出色，后半段剧情张力拉满...">${escapeHtml(editingReviewNote||'')}</textarea>
       </div>
+      ${srcSelectHTML}
       <div class="mt-3 p-3 rounded-xl soft-bg-50">
         <div class="flex items-center gap-2 flex-wrap">
           <button type="button" onclick="aiGenerateReview()" class="btn-soft px-4 py-2 text-sm" ${hasAI?'':'disabled style="opacity:.45;cursor:not-allowed"'}>
@@ -2381,6 +2439,18 @@
         </div>
         <div class="mt-2">${reviewHint}</div>
       </div>`;
+  }
+  function onChangeReviewSource(v){ editingReviewSource=v; }
+  // 手动修改 / AI 生成 / 手动补词 组合 → 自动切换来源（保持用户手工选的 third/mixed/ai/manual 仅在无冲突时尊重）
+  function deriveFinalReviewSource(prev, hadAIBefore, userTouched){
+    if(!prev) return userTouched ? 'manual' : (hadAIBefore ? 'ai' : '');
+    // 用户明确选了第三方则保留
+    if(prev==='third') return 'third';
+    if(prev==='auto' && !userTouched && !hadAIBefore) return 'auto';
+    if(hadAIBefore && userTouched) return 'mixed';
+    if(hadAIBefore) return 'ai';
+    if(userTouched) return 'manual';
+    return prev;
   }
   function setReviewGrade(k){
     editingReviewGrade = (editingReviewGrade===k) ? '' : k;
@@ -2514,6 +2584,7 @@
     const m=MODULES[key];
     editingModuleKey=key; editingTags=[]; starValue=0;
     editingReviewGrade=''; editingReviewTags=[]; editingReviewNote=''; editingReviewSource='';
+    reviewSnapshot=null; reviewHadAI=false;
     $('editModule').value=key;
     $('itemModalTitle').textContent = id?'编辑'+m.labelSingle:'添加'+m.labelSingle;
     $('fldType').innerHTML=Object.entries(m.types).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
@@ -2527,30 +2598,40 @@
       normalizeItem(m, it); // 确保字段规整 + 迁移过
       $('editId').value=it.id;
       $('fldTitle').value=it.title||'';
+      try{ $('fldType').value=it.type||m.defaultType; }catch(_){}
+      try{ $('fldStatus').value=it.status||Object.keys(m.statuses)[0]; }catch(_){}
+      $('fldProgress').value=it[m.pField]||0; $('fldTotal').value=it[m.tField]||0;
+      $('fldNote').value=it.note||''; $('fldImg').value=it.img||'';
       m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=it[f.key]||''; });
-      $('fldType').value=it.type||m.defaultType;
-      $('fldStatus').value=it.status||m.defaultStatus;
-      $('fldProgress').value=it[m.pField]||0;
-      $('fldTotal').value=it[m.tField]||'';
-      $('fldImg').value=it.img||'';
-      $('fldNote').value=it.note||'';
-      starValue=it.rating||0; editingTags=[...(it.tags||[])];
+      editingTags = [...(it.tags||[])];
+      starValue = it.rating||0; refreshStars();
       editingReviewGrade = it.reviewGrade || '';
       editingReviewTags  = [...(it.reviewTags||[])];
       editingReviewNote  = it.reviewNote || '';
       editingReviewSource= it.reviewSource || '';
-      refreshStars(); renderTagList(); renderReviewUI();
-      if(it.img){ $('imgPrev').src=it.img; $('imgPrev').classList.remove('hidden'); if(it.img.startsWith('data:')){ switchImgSrc('local'); $('fileHint').textContent='已上传图片'; } else { switchImgSrc('lib'); } }
+      // 快照：后续比对"用户是否手动修改"
+      reviewSnapshot = {
+        grade: editingReviewGrade,
+        tags: [...editingReviewTags].sort(),
+        note: editingReviewNote
+      };
+      reviewHadAI = (it.reviewSource==='ai' || it.reviewSource==='mixed');
+      if(it.img){ try{ previewImg(); }catch(_){} }
+      renderTagPresets(); renderReviewUI();
     }else{
-      $('editId').value='';
-      $('fldTitle').value='';
+      $('editId').value=''; $('fldTitle').value='';
+      $('fldProgress').value=0; $('fldTotal').value=0;
+      $('fldNote').value=''; $('fldImg').value='';
       m.extraFields.forEach(f=>{ const el=$('fld_'+f.key); if(el) el.value=''; });
-      ['fldProgress','fldTotal','fldNote','fldTagInput','fldImgFile','fldReviewTagInput','fldReviewNote'].forEach(i=>{const el=$(i); if(el) el.value='';});
-      $('fldType').value=m.defaultType; $('fldStatus').value=m.defaultStatus;
-      switchImgSrc('local'); $('fileHint').textContent='未选择';
-      refreshStars(); renderTagList(); renderReviewUI();
+      try{ $('fldType').value=m.defaultType; }catch(_){}
+      try{ $('fldStatus').value=Object.keys(m.statuses)[0]; }catch(_){}
+      refreshStars();
+      reviewSnapshot = { grade:'', tags:[], note:'' };
+      reviewHadAI = false;
+      renderTagPresets(); renderReviewUI();
     }
     $('itemModal').classList.remove('hidden');
+    setTimeout(()=>$('fldTitle')?.focus(), 80);
   }
   function closeItemModal(){ $('itemModal').classList.add('hidden'); }
   function saveItem(){
@@ -2559,9 +2640,20 @@
     if(!title){ alert('请填写标题'); return; }
     const id=$('editId').value;
     const note = ($('fldNote')?.value||'').trim();
-    // 如果用户点了 AI/手动加了 reviewTag/评级/评注，但没打星级 → 仍算来源=manual
+    // 读取用户手动选择的来源下拉
+    const selectedSource = ($('fldReviewSource')?.value||'').trim();
+    if(selectedSource) editingReviewSource = selectedSource;
+    // 判定用户是否手动修改过评价内容（和进入弹窗时快照对比）
+    let userTouched=false;
+    if(reviewSnapshot){
+      if(editingReviewGrade!==reviewSnapshot.grade) userTouched=true;
+      const a=reviewSnapshot.tags, b=[...editingReviewTags].sort();
+      if(a.length!==b.length) userTouched=true;
+      else for(let i=0;i<a.length;i++) if(a[i]!==b[i]){ userTouched=true; break; }
+      if((editingReviewNote||'')!==reviewSnapshot.note) userTouched=true;
+    }
     const hasAnyReview = !!(editingReviewGrade || editingReviewTags.length || (editingReviewNote&&editingReviewNote.trim()));
-    const src = hasAnyReview ? (editingReviewSource || 'manual') : '';
+    let src = hasAnyReview ? deriveFinalReviewSource(editingReviewSource||'', reviewHadAI, userTouched) : '';
     const d={ title, type:$('fldType').value, status:$('fldStatus').value,
       rating:starValue, img:$('fldImg').value.trim(), tags:[...editingTags], note,
       reviewGrade:editingReviewGrade||'', reviewTags:[...editingReviewTags],
@@ -3609,7 +3701,7 @@
     saveRecords(); saveApps(); saveAppOrder(); saveAppOverrides(); renderAppShortcuts();
     // 重置筛选/排序/分页/展开等 UI 状态，避免清空后残留失效的标签筛选或展开状态
     ['show','book'].forEach(k=>{
-      ui[k].filter='all'; ui[k].tagFilter=null; ui[k].keyword=''; ui[k].showAll=false;
+      ui[k].filter='all'; ui[k].tagFilter=null; ui[k].gradeFilter=null; ui[k].keyword=''; ui[k].showAll=false;
       if(ui[k].chart){ try{ ui[k].chart.destroy(); }catch(_){} ui[k].chart=null; }
     });
     $('searchInput_show').value=''; $('searchInput_book').value='';
